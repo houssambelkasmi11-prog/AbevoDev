@@ -1,0 +1,620 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ───────────────────────── Brand tokens ───────────────────────── */
+@theme {
+  --color-void: #070809;
+  --color-obsidian: #0d0e10;
+  --color-graphite: #17191c;
+  --color-deep: #202226;
+  --color-warm: #f5f3ef;
+  --color-silver: #c9cdd1;
+  --color-muted: #858a91;
+  --color-ice: #dbe8f2;
+
+  --ease-orbit: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-snap: cubic-bezier(0.65, 0, 0.35, 1);
+
+  --text-micro: 0.625rem;
+  --text-micro--line-height: 1rem;
+  --tracking-label: 0.18em;
+  --tracking-display: -0.045em;
+
+  --animate-pulse-soft: pulse-soft 2.4s var(--ease-snap) infinite;
+  --animate-orbit: orbit-spin 3.2s linear infinite;
+}
+
+/* Workspace semantic tokens (light default, .dark override) */
+:root {
+  --canvas: #f6f5f2;
+  --surface: #ffffff;
+  --soft: #ebeae6;
+  --ink: #111214;
+  --ink-2: #777b80;
+  --ink-3: #a3a6aa;
+  --line: #dddcd7;
+  --line-strong: #c9c8c2;
+  --accent: #111214;
+  --accent-ink: #f6f5f2;
+  --glow: rgba(160, 200, 230, 0.35);
+  --danger: #a23a2a;
+  --ok: #2f6b4a;
+  --sh-soft: 0 1px 2px rgba(17, 18, 20, 0.04), 0 8px 24px -12px rgba(17, 18, 20, 0.12);
+  --sh-lift: 0 2px 4px rgba(17, 18, 20, 0.05), 0 24px 48px -24px rgba(17, 18, 20, 0.22);
+  color-scheme: light;
+}
+
+.dark {
+  --canvas: #0b0c0d;
+  --surface: #131416;
+  --soft: #1b1d20;
+  --ink: #f5f3ef;
+  --ink-2: #8f949a;
+  --ink-3: #5d6166;
+  --line: rgba(255, 255, 255, 0.09);
+  --line-strong: rgba(255, 255, 255, 0.16);
+  --accent: #f5f3ef;
+  --accent-ink: #0b0c0d;
+  --glow: rgba(190, 220, 245, 0.25);
+  --danger: #e07a68;
+  --ok: #7fbf98;
+  --sh-soft: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+  --sh-lift: 0 2px 4px rgba(0, 0, 0, 0.4), 0 24px 48px -24px rgba(0, 0, 0, 0.8);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-soft: var(--soft);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-danger: var(--danger);
+  --color-ok: var(--ok);
+
+  --font-display: "Cabinet Grotesk", var(--font-body-face), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-body-face), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-serif-face), ui-serif, Georgia, serif;
+  --font-mono: var(--font-mono-face), ui-monospace, "SFMono-Regular", monospace;
+
+  --shadow-soft: var(--sh-soft);
+  --shadow-lift: var(--sh-lift);
+}
+
+/* ───────────────────────── Base ───────────────────────── */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  body {
+    font-family: var(--font-sans);
+    background: var(--canvas);
+    color: var(--ink);
+    overflow-x: clip;
+  }
+  ::selection {
+    background: rgba(201, 205, 209, 0.45);
+    color: inherit;
+  }
+  :focus-visible {
+    outline: 1.5px solid currentColor;
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+  button,
+  [role="button"] {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
+  input,
+  textarea,
+  select {
+    font: inherit;
+    color: inherit;
+  }
+  /* Lenis */
+  html.lenis,
+  html.lenis body {
+    height: auto;
+  }
+  .lenis.lenis-smooth {
+    scroll-behavior: auto !important;
+  }
+  .lenis.lenis-smooth [data-lenis-prevent] {
+    overscroll-behavior: contain;
+  }
+}
+
+/* ───────────────────────── Signature utilities ───────────────────────── */
+@utility label {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  line-height: 1rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+@utility display {
+  font-family: var(--font-display);
+  letter-spacing: -0.045em;
+  line-height: 0.9;
+  font-weight: 700;
+}
+
+@utility serif-accent {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+
+@utility hairline {
+  border-color: var(--line);
+}
+
+@utility micro-grid {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+@utility micro-grid-ink {
+  background-image:
+    linear-gradient(to right, color-mix(in oklab, var(--ink) 5%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--ink) 5%, transparent) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+@utility noise {
+  position: relative;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.06;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.9'/></svg>");
+  }
+}
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility metallic-text {
+  background: linear-gradient(180deg, #ffffff 0%, #d9dcdf 45%, #8b9096 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ───────────────────────── Keyframes ───────────────────────── */
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes orbit-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes orbit-spin-rev {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+@keyframes dash-flow {
+  to {
+    stroke-dashoffset: -200;
+  }
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--soft) 25%, color-mix(in oklab, var(--soft) 60%, var(--surface)) 50%, var(--soft) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+.animate-rise {
+  animation: rise 0.6s var(--ease-orbit) both;
+}
+
+/* Learning Pulse — miniature orbital loader */
+.orbit-pulse .ring-a {
+  transform-origin: 50% 50%;
+  animation: orbit-spin 2.4s linear infinite;
+}
+.orbit-pulse .ring-b {
+  transform-origin: 50% 50%;
+  animation: orbit-spin-rev 3.6s linear infinite;
+}
+.orbit-pulse .core {
+  animation: pulse-soft 1.6s var(--ease-snap) infinite;
+}
+
+/* Theme transition (applied briefly during toggle) */
+html.theme-transition,
+html.theme-transition *,
+html.theme-transition *::before,
+html.theme-transition *::after {
+  transition:
+    background-color 360ms var(--ease-orbit),
+    border-color 360ms var(--ease-orbit),
+    color 360ms var(--ease-orbit),
+    fill 360ms var(--ease-orbit) !important;
+}
+
+/* ───────────────────────── Editor prose ───────────────────────── */
+.orbit-prose {
+  font-size: 1.0625rem;
+  line-height: 1.75;
+  color: var(--ink);
+  outline: none;
+}
+.orbit-prose > * + * {
+  margin-top: 0.85em;
+}
+.orbit-prose h1,
+.orbit-prose h2,
+.orbit-prose h3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  font-weight: 700;
+}
+.orbit-prose h1 {
+  font-size: 2.25rem;
+  margin-top: 1.6em;
+}
+.orbit-prose h2 {
+  font-size: 1.6rem;
+  margin-top: 1.5em;
+}
+.orbit-prose h3 {
+  font-size: 1.25rem;
+  margin-top: 1.3em;
+}
+.orbit-prose a {
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 3px;
+}
+.orbit-prose a:hover {
+  text-decoration-color: var(--ink);
+}
+.orbit-prose ul {
+  list-style: disc;
+  padding-left: 1.4em;
+}
+.orbit-prose ol {
+  list-style: decimal;
+  padding-left: 1.4em;
+}
+.orbit-prose li > p {
+  margin: 0;
+}
+.orbit-prose ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0.2em;
+}
+.orbit-prose ul[data-type="taskList"] li {
+  display: flex;
+  gap: 0.6em;
+  align-items: flex-start;
+}
+.orbit-prose ul[data-type="taskList"] li > label {
+  margin-top: 0.35em;
+}
+.orbit-prose ul[data-type="taskList"] li[data-checked="true"] > div {
+  color: var(--ink-2);
+  text-decoration: line-through;
+}
+.orbit-prose ul[data-type="taskList"] input[type="checkbox"] {
+  accent-color: var(--ink);
+  width: 0.95rem;
+  height: 0.95rem;
+}
+.orbit-prose blockquote {
+  border-left: 1.5px solid var(--ink);
+  padding-left: 1em;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1.2em;
+  color: var(--ink);
+}
+.orbit-prose code {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  background: var(--soft);
+  padding: 0.12em 0.36em;
+  border-radius: 4px;
+}
+.orbit-prose pre {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  line-height: 1.6;
+  background: #0d0e10;
+  color: #e6e4df;
+  padding: 1rem 1.15rem;
+  border-radius: 10px;
+  overflow-x: auto;
+}
+.orbit-prose pre code {
+  background: none;
+  padding: 0;
+  color: inherit;
+}
+.orbit-prose hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 2em 0;
+}
+.orbit-prose img {
+  max-width: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+}
+.orbit-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+  table-layout: fixed;
+}
+.orbit-prose th,
+.orbit-prose td {
+  border: 1px solid var(--line);
+  padding: 0.45em 0.7em;
+  vertical-align: top;
+  position: relative;
+}
+.orbit-prose th {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: left;
+  background: var(--soft);
+}
+.orbit-prose .selectedCell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--glow);
+  pointer-events: none;
+}
+.orbit-prose .tableWrapper {
+  overflow-x: auto;
+}
+.orbit-prose p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--ink-3);
+  pointer-events: none;
+  height: 0;
+}
+.orbit-prose [data-type="inline-math"],
+.orbit-prose [data-type="block-math"] {
+  cursor: pointer;
+}
+.orbit-prose [data-type="block-math"] {
+  padding: 0.75rem 0;
+  text-align: center;
+}
+
+/* Markdown (AI output) */
+.orbit-md {
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+.orbit-md > * + * {
+  margin-top: 0.7em;
+}
+.orbit-md h1,
+.orbit-md h2,
+.orbit-md h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin-top: 1.1em;
+}
+.orbit-md h1 {
+  font-size: 1.35rem;
+}
+.orbit-md h2 {
+  font-size: 1.2rem;
+}
+.orbit-md h3 {
+  font-size: 1.05rem;
+}
+.orbit-md ul {
+  list-style: disc;
+  padding-left: 1.3em;
+}
+.orbit-md ol {
+  list-style: decimal;
+  padding-left: 1.3em;
+}
+.orbit-md li + li {
+  margin-top: 0.25em;
+}
+.orbit-md a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.orbit-md blockquote {
+  border-left: 1.5px solid var(--line-strong);
+  padding-left: 0.9em;
+  color: var(--ink-2);
+}
+.orbit-md code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--soft);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+}
+.orbit-md pre {
+  background: #0d0e10;
+  color: #e6e4df;
+  border-radius: 10px;
+  padding: 0.9rem 1rem;
+  overflow-x: auto;
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+.orbit-md pre code {
+  background: none;
+  padding: 0;
+  color: inherit;
+}
+.orbit-md table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.88rem;
+}
+.orbit-md th,
+.orbit-md td {
+  border: 1px solid var(--line);
+  padding: 0.35em 0.6em;
+  text-align: left;
+}
+.orbit-md .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.25rem 0;
+}
+
+/* highlight.js — monochrome theme */
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-built_in {
+  color: #ffffff;
+  font-weight: 600;
+}
+.hljs-string,
+.hljs-attr {
+  color: #c9d8e4;
+}
+.hljs-number,
+.hljs-literal {
+  color: #e8dcc8;
+}
+.hljs-comment {
+  color: #6f747a;
+  font-style: italic;
+}
+.hljs-title,
+.hljs-function {
+  color: #f5f3ef;
+}
+
+/* React Flow — ORBIT constellation skin */
+.orbit-flow .react-flow__edge-path {
+  stroke: var(--line-strong);
+  stroke-width: 1;
+}
+.orbit-flow .react-flow__edge.selected .react-flow__edge-path {
+  stroke: var(--ink);
+}
+.orbit-flow .react-flow__handle {
+  width: 7px;
+  height: 7px;
+  background: var(--surface);
+  border: 1px solid var(--ink-2);
+}
+.orbit-flow .react-flow__controls {
+  box-shadow: none;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.orbit-flow .react-flow__controls-button {
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  fill: var(--ink);
+}
+.orbit-flow .react-flow__minimap {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.orbit-flow .react-flow__attribution {
+  background: transparent;
+  color: var(--ink-3);
+}
+.orbit-flow .react-flow__attribution a {
+  color: var(--ink-3);
+}
+
+/* Flashcard 3D flip */
+.flip-scene {
+  perspective: 1600px;
+}
+.flip-card {
+  transform-style: preserve-3d;
+  transition: transform 700ms var(--ease-orbit);
+}
+.flip-card[data-flipped="true"] {
+  transform: rotateY(180deg);
+}
+.flip-face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.flip-back {
+  transform: rotateY(180deg);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

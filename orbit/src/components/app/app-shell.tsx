@@ -1,0 +1,351 @@
+"use client";
+
+import * as DM from "@radix-ui/react-dropdown-menu";
+import * as RD from "@radix-ui/react-dialog";
+import { ChevronsUpDown, LogOut, Menu, Moon, PanelLeftClose, PanelLeftOpen, Plus, Search, Sun, X } from "lucide-react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState, useTransition } from "react";
+import { OrbitSymbol } from "@/components/brand/logo";
+import { Kbd } from "@/components/ui/field";
+import { ToastProvider, useToast } from "@/components/ui/toast";
+import { Dialog } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/field";
+import type { ThemePref, WorkspaceRow } from "@/lib/types";
+import { cn } from "@/lib/utils";
+import { signOutAction } from "@/server/actions/auth";
+import { createWorkspace, switchWorkspace } from "@/server/actions/workspace";
+import { CommandPalette } from "./command-palette";
+import { CreateMenu } from "./create-menu";
+import { isActive, MOBILE_TABS, NAV } from "./nav-items";
+import { ThemeProvider, useTheme } from "./theme";
+
+export interface ShellProps {
+  user: { email: string; name: string | null };
+  theme: ThemePref;
+  workspace: WorkspaceRow;
+  workspaces: WorkspaceRow[];
+  backend: "local" | "supabase";
+  children: React.ReactNode;
+}
+
+export function AppShell(props: ShellProps) {
+  return (
+    <ThemeProvider initial={props.theme}>
+      <ToastProvider>
+        <ShellInner {...props} />
+      </ToastProvider>
+    </ThemeProvider>
+  );
+}
+
+function ShellInner({ user, workspace, workspaces, children }: ShellProps) {
+  const pathname = usePathname();
+  const [collapsed, setCollapsed] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [drawer, setDrawer] = useState(false);
+  const focusMode = pathname.startsWith("/app/focus");
+
+  useEffect(() => {
+    try {
+      setCollapsed(localStorage.getItem("orbit-sidebar") === "collapsed");
+    } catch {
+      /* ignore */
+    }
+  }, []);
+  useEffect(() => setDrawer(false), [pathname]);
+
+  const toggleCollapsed = () => {
+    setCollapsed((c) => {
+      try {
+        localStorage.setItem("orbit-sidebar", c ? "open" : "collapsed");
+      } catch {
+        /* ignore */
+      }
+      return !c;
+    });
+  };
+
+  return (
+    <div className="flex min-h-[100dvh] bg-canvas text-ink">
+      {/* Desktop sidebar */}
+      <aside
+        className={cn(
+          "sticky top-0 hidden h-[100dvh] shrink-0 flex-col border-r border-line bg-canvas transition-[width] duration-300 ease-[var(--ease-orbit)] lg:flex",
+          collapsed ? "w-[68px]" : "w-[248px]",
+        )}
+        aria-label="Workspace navigation"
+      >
+        <SidebarContent collapsed={collapsed} workspace={workspace} workspaces={workspaces} user={user} onSearch={() => setPaletteOpen(true)} />
+        <button
+          onClick={toggleCollapsed}
+          className="mx-3 mb-3 flex h-9 items-center gap-3 rounded-lg px-2.5 text-[12.5px] text-ink-2 hover:bg-soft hover:text-ink"
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+          {collapsed ? null : <span>Collapse</span>}
+        </button>
+      </aside>
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* Mobile top bar */}
+        <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-line bg-canvas/85 px-3 backdrop-blur-xl lg:hidden">
+          <button onClick={() => setDrawer(true)} aria-label="Open navigation" className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-soft">
+            <Menu className="h-5 w-5" />
+          </button>
+          <Link href="/app" className="flex items-center gap-2" aria-label="Overview">
+            <OrbitSymbol className="h-5 w-5" />
+            <span className="font-display text-[13px] font-bold tracking-[0.3em]">ORBIT</span>
+          </Link>
+          <button onClick={() => setPaletteOpen(true)} aria-label="Search" className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-soft">
+            <Search className="h-5 w-5" />
+          </button>
+        </header>
+
+        <main id="main" className={cn("min-w-0 flex-1", !focusMode && "pb-24 lg:pb-0")}>
+          {children}
+        </main>
+
+        {/* Mobile tab bar */}
+        {!focusMode ? (
+          <nav aria-label="Quick navigation" className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-canvas/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
+            <ul className="grid grid-cols-5">
+              {NAV.filter((n) => MOBILE_TABS.includes(n.href)).map((n) => (
+                <li key={n.href}>
+                  <Link
+                    href={n.href}
+                    aria-current={isActive(pathname, n.href) ? "page" : undefined}
+                    className={cn("flex h-16 flex-col items-center justify-center gap-1 text-[10px]", isActive(pathname, n.href) ? "text-ink" : "text-ink-3")}
+                  >
+                    <n.icon className="h-5 w-5" />
+                    <span>{n.label.split(" ")[0]}</span>
+                  </Link>
+                </li>
+              ))}
+              <li className="flex items-center justify-center">
+                <CreateMenu compact className="h-11 w-11 rounded-2xl" />
+              </li>
+            </ul>
+          </nav>
+        ) : null}
+      </div>
+
+      {/* Mobile drawer */}
+      <RD.Root open={drawer} onOpenChange={setDrawer}>
+        <RD.Portal>
+          <RD.Overlay className="fixed inset-0 z-[70] bg-black/40 lg:hidden" />
+          <RD.Content className="fixed inset-y-0 left-0 z-[71] flex w-[min(300px,86vw)] flex-col border-r border-line bg-canvas text-ink focus:outline-none lg:hidden">
+            <RD.Title className="sr-only">Navigation</RD.Title>
+            <RD.Description className="sr-only">Workspace navigation</RD.Description>
+            <RD.Close asChild>
+              <button aria-label="Close navigation" className="absolute right-3 top-3 z-10 rounded-lg p-2 hover:bg-soft">
+                <X className="h-4 w-4" />
+              </button>
+            </RD.Close>
+            <SidebarContent collapsed={false} workspace={workspace} workspaces={workspaces} user={user} onSearch={() => { setDrawer(false); setPaletteOpen(true); }} />
+          </RD.Content>
+        </RD.Portal>
+      </RD.Root>
+
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+    </div>
+  );
+}
+
+function SidebarContent({
+  collapsed,
+  workspace,
+  workspaces,
+  user,
+  onSearch,
+}: {
+  collapsed: boolean;
+  workspace: WorkspaceRow;
+  workspaces: WorkspaceRow[];
+  user: { email: string; name: string | null };
+  onSearch: () => void;
+}) {
+  const pathname = usePathname();
+  const { resolved, toggle } = useTheme();
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className={cn("flex h-16 items-center px-4", collapsed && "justify-center px-0")}>
+        <Link href="/app" className="flex items-center gap-2.5" aria-label="ORBIT overview">
+          <OrbitSymbol className="h-6 w-6" />
+          {collapsed ? null : <span className="font-display text-[14px] font-bold tracking-[0.32em]">ORBIT</span>}
+        </Link>
+      </div>
+
+      <div className={cn("px-3", collapsed && "px-2")}>
+        <WorkspaceSwitcher workspace={workspace} workspaces={workspaces} collapsed={collapsed} />
+        <div className={cn("mt-3 flex gap-2", collapsed && "flex-col items-center")}>
+          <CreateMenu compact={collapsed} />
+          <button
+            onClick={onSearch}
+            aria-label="Search (Ctrl K)"
+            className={cn("flex h-9 shrink-0 items-center justify-center gap-2 rounded-xl border border-line text-ink-2 hover:bg-soft hover:text-ink", collapsed ? "w-9" : "w-auto px-2.5")}
+          >
+            <Search className="h-4 w-4" />
+            {collapsed ? null : <Kbd>⌘K</Kbd>}
+          </button>
+        </div>
+      </div>
+
+      <nav className="mt-5 min-h-0 flex-1 overflow-y-auto px-3" aria-label="Sections">
+        <ul className="flex flex-col gap-0.5">
+          {NAV.map((n) => {
+            const active = isActive(pathname, n.href);
+            return (
+              <li key={n.href}>
+                <Link
+                  href={n.href}
+                  aria-current={active ? "page" : undefined}
+                  title={collapsed ? n.label : undefined}
+                  className={cn(
+                    "group relative flex h-9 items-center gap-3 rounded-lg px-2.5 text-[13.5px] transition-colors",
+                    active ? "bg-surface text-ink shadow-soft" : "text-ink-2 hover:bg-soft hover:text-ink",
+                    collapsed && "justify-center px-0",
+                  )}
+                >
+                  {active ? <span className="absolute -left-3 top-2 h-5 w-[2px] rounded-full bg-ink" /> : null}
+                  <n.icon className="h-[17px] w-[17px] shrink-0" strokeWidth={1.7} />
+                  {collapsed ? null : <span className="truncate">{n.label}</span>}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+
+      <div className={cn("border-t border-line p-3", collapsed && "flex flex-col items-center gap-2 px-2")}>
+        <div className={cn("flex items-center gap-2", collapsed && "flex-col")}>
+          <DM.Root>
+            <DM.Trigger asChild>
+              <button className={cn("flex min-w-0 flex-1 items-center gap-2.5 rounded-lg p-1.5 text-left hover:bg-soft", collapsed && "flex-none")} aria-label="Account menu">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-ink font-mono text-[11px] uppercase text-canvas">
+                  {(user.name ?? user.email).slice(0, 1)}
+                </span>
+                {collapsed ? null : (
+                  <span className="min-w-0">
+                    <span className="block truncate text-[12.5px] font-medium">{user.name ?? "Student"}</span>
+                    <span className="block truncate text-[11px] text-ink-2">{user.email}</span>
+                  </span>
+                )}
+              </button>
+            </DM.Trigger>
+            <DM.Portal>
+              <DM.Content side="top" align="start" sideOffset={8} className="z-[90] min-w-[200px] rounded-xl border border-line bg-surface p-1.5 text-ink shadow-lift">
+                <DM.Item asChild>
+                  <Link href="/app/settings" className="flex items-center rounded-lg px-2.5 py-2 text-[13px] outline-none data-[highlighted]:bg-soft">
+                    Settings
+                  </Link>
+                </DM.Item>
+                <DM.Item asChild>
+                  <Link href="/" className="flex items-center rounded-lg px-2.5 py-2 text-[13px] outline-none data-[highlighted]:bg-soft">
+                    Public site
+                  </Link>
+                </DM.Item>
+                <DM.Separator className="my-1 h-px bg-line" />
+                <DM.Item
+                  onSelect={() => {
+                    void signOutAction();
+                  }}
+                  className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] outline-none data-[highlighted]:bg-soft"
+                >
+                  <LogOut className="h-3.5 w-3.5" /> Sign out
+                </DM.Item>
+              </DM.Content>
+            </DM.Portal>
+          </DM.Root>
+          <button onClick={toggle} aria-label={resolved === "dark" ? "Switch to light theme" : "Switch to dark theme"} className="rounded-lg p-2 text-ink-2 hover:bg-soft hover:text-ink">
+            {resolved === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WorkspaceSwitcher({ workspace, workspaces, collapsed }: { workspace: WorkspaceRow; workspaces: WorkspaceRow[]; collapsed: boolean }) {
+  const router = useRouter();
+  const toast = useToast();
+  const [pending, start] = useTransition();
+  const [creating, setCreating] = useState(false);
+  const [name, setName] = useState("");
+
+  return (
+    <>
+      <DM.Root>
+        <DM.Trigger asChild>
+          <button
+            className={cn("flex h-10 w-full items-center gap-2.5 rounded-xl border border-line bg-surface px-2.5 text-left shadow-soft", collapsed && "justify-center px-0", pending && "opacity-60")}
+            aria-label={`Workspace: ${workspace.name}. Switch workspace`}
+          >
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-soft font-mono text-[10px] uppercase">{workspace.name.slice(0, 2)}</span>
+            {collapsed ? null : (
+              <>
+                <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{workspace.name}</span>
+                <ChevronsUpDown className="h-3.5 w-3.5 text-ink-3" />
+              </>
+            )}
+          </button>
+        </DM.Trigger>
+        <DM.Portal>
+          <DM.Content align="start" sideOffset={6} className="z-[90] min-w-[230px] rounded-xl border border-line bg-surface p-1.5 text-ink shadow-lift">
+            <DM.Label className="label px-2.5 py-1.5 text-ink-3">Workspaces</DM.Label>
+            {workspaces.map((w) => (
+              <DM.Item
+                key={w.id}
+                onSelect={() =>
+                  start(async () => {
+                    if (w.id === workspace.id) return;
+                    const r = await switchWorkspace(w.id);
+                    if (!r.ok) toast.error(r.error);
+                    router.refresh();
+                  })
+                }
+                className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] outline-none data-[highlighted]:bg-soft"
+              >
+                <span className="flex h-5 w-5 items-center justify-center rounded bg-soft font-mono text-[9px] uppercase">{w.name.slice(0, 2)}</span>
+                <span className="flex-1 truncate">{w.name}</span>
+                {w.id === workspace.id ? <span className="h-1.5 w-1.5 rounded-full bg-ink" /> : null}
+              </DM.Item>
+            ))}
+            <DM.Separator className="my-1 h-px bg-line" />
+            <DM.Item onSelect={() => setCreating(true)} className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] outline-none data-[highlighted]:bg-soft">
+              <Plus className="h-3.5 w-3.5" /> New workspace
+            </DM.Item>
+          </DM.Content>
+        </DM.Portal>
+      </DM.Root>
+      <Dialog open={creating} onOpenChange={setCreating} title="New workspace" description="Keep separate universes — e.g. one per semester or school.">
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            start(async () => {
+              const r = await createWorkspace({ name });
+              if (r.ok) {
+                setCreating(false);
+                setName("");
+                router.refresh();
+              } else toast.error(r.error);
+            });
+          }}
+        >
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Spring semester" aria-label="Workspace name" autoFocus required />
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setCreating(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" loading={pending}>
+              Create
+            </Button>
+          </div>
+        </form>
+      </Dialog>
+    </>
+  );
+}

@@ -1,0 +1,43 @@
+/** Honest, provider-level capability notes shown on the public site. */
+export const PROVIDER_FACTS = [
+  {
+    id: "openai",
+    name: "OpenAI",
+    chat: true,
+    vision: "Model-dependent",
+    embeddings: "Yes — used for semantic retrieval",
+    notes: "Model list is fetched live from your account. Some reasoning models ignore temperature; ORBIT adapts automatically.",
+  },
+  {
+    id: "anthropic",
+    name: "Anthropic",
+    chat: true,
+    vision: "Model-dependent",
+    embeddings: "Not offered — ORBIT uses keyword retrieval or another embedding provider",
+    notes: "Model list is fetched live via the Models API.",
+  },
+  {
+    id: "gemini",
+    name: "Google Gemini",
+    chat: true,
+    vision: "Model-dependent",
+    embeddings: "Yes — used for semantic retrieval",
+    notes: "Only models that support content generation are listed.",
+  },
+  {
+    id: "openrouter",
+    name: "OpenRouter",
+    chat: true,
+    vision: "Per model (reported by OpenRouter)",
+    embeddings: "Not used by ORBIT",
+    notes: "Hundreds of models from many vendors through one key. Per-token pricing is shown when OpenRouter publishes it.",
+  },
+  {
+    id: "custom",
+    name: "Custom endpoint",
+    chat: true,
+    vision: "Depends on the server",
+    embeddings: "If the server implements /embeddings",
+    notes: "Any OpenAI-compatible API (e.g. a self-hosted server). Capabilities can't be verified in advance.",
+  },
+] as const;
