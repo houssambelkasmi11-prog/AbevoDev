@@ -1,3 +1,4 @@
+import "katex/dist/katex.min.css";
 import type { Metadata } from "next";
 import { AppShell } from "@/components/app/app-shell";
 import { getContext } from "@/lib/bootstrap";

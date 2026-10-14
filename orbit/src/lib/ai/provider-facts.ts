@@ -33,6 +33,14 @@ export const PROVIDER_FACTS = [
     notes: "Hundreds of models from many vendors through one key. Per-token pricing is shown when OpenRouter publishes it.",
   },
   {
+    id: "deepseek",
+    name: "DeepSeek",
+    chat: true,
+    vision: "Text models (no image input)",
+    embeddings: "Not offered — ORBIT uses keyword retrieval or another embedding provider",
+    notes: "Fast, low-cost chat and reasoning models via DeepSeek's OpenAI-compatible API. Model list is fetched live from your account.",
+  },
+  {
     id: "custom",
     name: "Custom endpoint",
     chat: true,

@@ -33,7 +33,7 @@ export function PageHeader({
 
 export function Panel({ title, action, children, className, bodyClassName }: { title?: React.ReactNode; action?: React.ReactNode; children: React.ReactNode; className?: string; bodyClassName?: string }) {
   return (
-    <section className={cn("rounded-2xl border border-line bg-surface shadow-soft", className)}>
+    <section data-spotlight className={cn("rounded-2xl border border-line bg-surface shadow-soft", className)}>
       {title ? (
         <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-3.5">
           <h2 className="label text-ink-2">{title}</h2>
@@ -46,5 +46,5 @@ export function Panel({ title, action, children, className, bodyClassName }: { t
 }
 
 export function PageContainer({ children, className, wide }: { children: React.ReactNode; className?: string; wide?: boolean }) {
-  return <div className={cn("mx-auto w-full px-4 py-6 sm:px-6 md:px-10 md:py-10", wide ? "max-w-[1500px]" : "max-w-6xl", className)}>{children}</div>;
+  return <div className={cn("fx-stagger mx-auto w-full px-4 py-6 sm:px-6 md:px-10 md:py-10", wide ? "max-w-[1500px]" : "max-w-6xl", className)}>{children}</div>;
 }

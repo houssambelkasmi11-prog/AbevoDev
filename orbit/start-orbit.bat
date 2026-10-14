@@ -1,5 +1,5 @@
 @echo off
-title ORBIT dev server
+title ORBIT
 cd /d "%~dp0"
 
 where node >nul 2>nul
@@ -22,7 +22,9 @@ if not exist node_modules (
 echo [ORBIT] Checking .env.local...
 call npm run setup
 
-echo [ORBIT] Starting dev server - browser opens in a moment.
-start "" cmd /c "timeout /t 8 >nul & start http://localhost:3000"
-call npm run dev
+rem Fast mode: optimised production server. It only recompiles after code changes,
+rem so pages open instantly instead of compiling on first visit like dev mode does.
+rem Want hot-reload while editing code? Run start-orbit-dev.bat instead.
+start "" /b node scripts\open-when-ready.mjs
+call npm run fast
 pause

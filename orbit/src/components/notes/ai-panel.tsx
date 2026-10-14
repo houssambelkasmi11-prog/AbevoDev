@@ -263,7 +263,7 @@ export function AiPanel({
 
           {pending && !cards ? (
             <div className="flex items-center gap-2 text-[12.5px] text-ink-2">
-              <OrbitPulse className="h-4 w-4 text-ink" /> Generating…
+              <OrbitPulse className="h-4 w-4 text-ink" /> <span className="fx-shimmer-text">Generating…</span>
             </div>
           ) : null}
 

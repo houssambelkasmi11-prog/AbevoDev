@@ -160,7 +160,7 @@ export interface PersonaRow extends BaseRow {
   glyph: number;
 }
 
-export type ProviderKind = "openai" | "anthropic" | "gemini" | "openrouter" | "custom";
+export type ProviderKind = "openai" | "anthropic" | "gemini" | "openrouter" | "deepseek" | "custom";
 
 export interface CredentialRow extends BaseRow {
   provider: ProviderKind;

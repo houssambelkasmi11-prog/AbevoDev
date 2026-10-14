@@ -5,8 +5,12 @@ import * as RD from "@radix-ui/react-dialog";
 import { ChevronsUpDown, LogOut, Menu, Moon, PanelLeftClose, PanelLeftOpen, Plus, Search, Sun, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { motion } from "motion/react";
+import { Suspense, useEffect, useState, useTransition } from "react";
 import { OrbitSymbol } from "@/components/brand/logo";
+import { AmbientShader } from "@/components/fx/ambient-shader";
+import { RouteProgress } from "@/components/fx/route-progress";
+import { Spotlight } from "@/components/fx/spotlight";
 import { Kbd } from "@/components/ui/field";
 import { ToastProvider, useToast } from "@/components/ui/toast";
 import { Dialog } from "@/components/ui/dialog";
@@ -68,16 +72,23 @@ function ShellInner({ user, workspace, workspaces, children }: ShellProps) {
   };
 
   return (
-    <div className="flex min-h-[100dvh] bg-canvas text-ink">
+    <div className="relative isolate flex min-h-[100dvh] bg-canvas text-ink">
+      {/* Living shader backdrop + global motion helpers */}
+      {focusMode ? null : <AmbientShader />}
+      <Suspense fallback={null}>
+        <RouteProgress />
+      </Suspense>
+      <Spotlight />
+
       {/* Desktop sidebar */}
       <aside
         className={cn(
-          "sticky top-0 hidden h-[100dvh] shrink-0 flex-col border-r border-line bg-canvas transition-[width] duration-300 ease-[var(--ease-orbit)] lg:flex",
+          "sticky top-0 z-[1] hidden h-[100dvh] shrink-0 flex-col border-r border-line bg-canvas/70 transition-[width] duration-300 ease-[var(--ease-orbit)] lg:flex",
           collapsed ? "w-[68px]" : "w-[248px]",
         )}
         aria-label="Workspace navigation"
       >
-        <SidebarContent collapsed={collapsed} workspace={workspace} workspaces={workspaces} user={user} onSearch={() => setPaletteOpen(true)} />
+        <SidebarContent pillId="nav-pill-desktop" collapsed={collapsed} workspace={workspace} workspaces={workspaces} user={user} onSearch={() => setPaletteOpen(true)} />
         <button
           onClick={toggleCollapsed}
           className="mx-3 mb-3 flex h-9 items-center gap-3 rounded-lg px-2.5 text-[12.5px] text-ink-2 hover:bg-soft hover:text-ink"
@@ -88,7 +99,7 @@ function ShellInner({ user, workspace, workspaces, children }: ShellProps) {
         </button>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="relative z-[1] flex min-w-0 flex-1 flex-col">
         {/* Mobile top bar */}
         <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-line bg-canvas/85 px-3 backdrop-blur-xl lg:hidden">
           <button onClick={() => setDrawer(true)} aria-label="Open navigation" className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-soft">
@@ -134,8 +145,8 @@ function ShellInner({ user, workspace, workspaces, children }: ShellProps) {
       {/* Mobile drawer */}
       <RD.Root open={drawer} onOpenChange={setDrawer}>
         <RD.Portal>
-          <RD.Overlay className="fixed inset-0 z-[70] bg-black/40 lg:hidden" />
-          <RD.Content className="fixed inset-y-0 left-0 z-[71] flex w-[min(300px,86vw)] flex-col border-r border-line bg-canvas text-ink focus:outline-none lg:hidden">
+          <RD.Overlay className="fx-overlay fixed inset-0 z-[70] bg-black/40 backdrop-blur-[2px] lg:hidden" />
+          <RD.Content className="fx-drawer fixed inset-y-0 left-0 z-[71] flex w-[min(300px,86vw)] flex-col border-r border-line bg-canvas text-ink focus:outline-none lg:hidden">
             <RD.Title className="sr-only">Navigation</RD.Title>
             <RD.Description className="sr-only">Workspace navigation</RD.Description>
             <RD.Close asChild>
@@ -143,7 +154,7 @@ function ShellInner({ user, workspace, workspaces, children }: ShellProps) {
                 <X className="h-4 w-4" />
               </button>
             </RD.Close>
-            <SidebarContent collapsed={false} workspace={workspace} workspaces={workspaces} user={user} onSearch={() => { setDrawer(false); setPaletteOpen(true); }} />
+            <SidebarContent pillId="nav-pill-drawer" collapsed={false} workspace={workspace} workspaces={workspaces} user={user} onSearch={() => { setDrawer(false); setPaletteOpen(true); }} />
           </RD.Content>
         </RD.Portal>
       </RD.Root>
@@ -154,12 +165,14 @@ function ShellInner({ user, workspace, workspaces, children }: ShellProps) {
 }
 
 function SidebarContent({
+  pillId,
   collapsed,
   workspace,
   workspaces,
   user,
   onSearch,
 }: {
+  pillId: string;
   collapsed: boolean;
   workspace: WorkspaceRow;
   workspaces: WorkspaceRow[];
@@ -205,13 +218,21 @@ function SidebarContent({
                   title={collapsed ? n.label : undefined}
                   className={cn(
                     "group relative flex h-9 items-center gap-3 rounded-lg px-2.5 text-[13.5px] transition-colors",
-                    active ? "bg-surface text-ink shadow-soft" : "text-ink-2 hover:bg-soft hover:text-ink",
+                    active ? "text-ink" : "text-ink-2 hover:bg-soft/70 hover:text-ink",
                     collapsed && "justify-center px-0",
                   )}
                 >
-                  {active ? <span className="absolute -left-3 top-2 h-5 w-[2px] rounded-full bg-ink" /> : null}
-                  <n.icon className="h-[17px] w-[17px] shrink-0" strokeWidth={1.7} />
-                  {collapsed ? null : <span className="truncate">{n.label}</span>}
+                  {active ? (
+                    <motion.span
+                      layoutId={pillId}
+                      className="absolute inset-0 rounded-lg bg-surface shadow-soft"
+                      transition={{ type: "spring", stiffness: 520, damping: 40, mass: 0.8 }}
+                    >
+                      <span className="absolute -left-3 top-2 h-5 w-[2px] rounded-full bg-ink" />
+                    </motion.span>
+                  ) : null}
+                  <n.icon className="relative h-[17px] w-[17px] shrink-0 transition-transform duration-300 ease-[var(--ease-orbit)] group-hover:scale-110" strokeWidth={1.7} />
+                  {collapsed ? null : <span className="relative truncate transition-transform duration-300 ease-[var(--ease-orbit)] group-hover:translate-x-0.5">{n.label}</span>}
                 </Link>
               </li>
             );

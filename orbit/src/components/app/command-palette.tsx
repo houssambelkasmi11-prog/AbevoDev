@@ -91,8 +91,8 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
     <>
       <RD.Root open={open} onOpenChange={onOpenChange}>
         <RD.Portal>
-          <RD.Overlay className="fixed inset-0 z-[95] bg-black/30 backdrop-blur-[2px]" />
-          <RD.Content className="fixed left-1/2 top-[12vh] z-[96] w-[min(640px,calc(100vw-24px))] -translate-x-1/2 overflow-hidden rounded-2xl border border-line bg-surface text-ink shadow-lift focus:outline-none">
+          <RD.Overlay className="fx-overlay fixed inset-0 z-[95] bg-black/30 backdrop-blur-[3px]" />
+          <RD.Content className="fx-palette fixed left-1/2 top-[12vh] z-[96] w-[min(640px,calc(100vw-24px))] -translate-x-1/2 overflow-hidden rounded-2xl border border-line bg-surface text-ink shadow-lift focus:outline-none">
             <RD.Title className="sr-only">Command palette</RD.Title>
             <RD.Description className="sr-only">Search your universe or run a command</RD.Description>
             <Command shouldFilter={false} loop label="Command palette">

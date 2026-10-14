@@ -14,7 +14,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 }
 
 const variants: Record<Variant, string> = {
-  primary: "bg-accent text-accent-ink hover:opacity-90 shadow-soft",
+  primary: "bg-accent text-accent-ink hover:opacity-95 hover:shadow-lift hover:-translate-y-px shadow-soft",
   secondary: "bg-soft text-ink hover:bg-line",
   outline: "border border-line-strong bg-transparent text-ink hover:bg-soft",
   ghost: "bg-transparent text-ink-2 hover:bg-soft hover:text-ink",
@@ -38,7 +38,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       type={type}
       disabled={disabled || loading}
       className={cn(
-        "inline-flex select-none items-center justify-center whitespace-nowrap font-medium transition-[background-color,opacity,transform,color] duration-200 active:scale-[0.98] disabled:opacity-45 disabled:active:scale-100",
+        "inline-flex select-none items-center justify-center whitespace-nowrap font-medium transition-[background-color,opacity,transform,translate,color,box-shadow] duration-300 ease-[var(--ease-orbit)] active:scale-[0.98] disabled:opacity-45 disabled:active:scale-100",
         variants[variant],
         sizes[size],
         className,

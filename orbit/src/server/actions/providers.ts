@@ -12,7 +12,7 @@ import type { ModelInfo, PublicCredential } from "@/lib/types";
 import { errorMessage } from "@/lib/utils";
 import { run, type ActionResult } from "../result";
 
-const providerEnum = z.enum(["openai", "anthropic", "gemini", "openrouter", "custom"]);
+const providerEnum = z.enum(["openai", "anthropic", "gemini", "openrouter", "deepseek", "custom"]);
 
 async function probe(provider: z.infer<typeof providerEnum>, apiKey: string, baseUrl: string | null): Promise<{ ok: true; models: ModelInfo[] } | { ok: false; error: string }> {
   try {

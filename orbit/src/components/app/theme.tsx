@@ -17,14 +17,48 @@ function systemDark() {
   return window.matchMedia("(prefers-color-scheme: dark)").matches;
 }
 
+// Remember where the user last pressed so the theme can bloom out from that point.
+let lastPoint: { x: number; y: number } | null = null;
+if (typeof window !== "undefined") {
+  window.addEventListener("pointerdown", (e) => (lastPoint = { x: e.clientX, y: e.clientY }), { capture: true, passive: true });
+}
+
+type VTDocument = { startViewTransition?: (cb: () => void) => { ready: Promise<unknown> } };
+
 function apply(resolved: "light" | "dark", animate: boolean) {
   const root = document.documentElement;
-  if (animate && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    root.classList.add("theme-transition");
-    window.setTimeout(() => root.classList.remove("theme-transition"), 420);
+  const flip = () => {
+    root.classList.toggle("dark", resolved === "dark");
+    root.style.colorScheme = resolved;
+  };
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!animate || reduced || root.classList.contains("dark") === (resolved === "dark")) {
+    flip();
+    return;
   }
-  root.classList.toggle("dark", resolved === "dark");
-  root.style.colorScheme = resolved;
+  const doc = document as unknown as VTDocument;
+  if (typeof doc.startViewTransition === "function") {
+    // Circular reveal of the new theme from the click point.
+    const { x, y } = lastPoint ?? { x: window.innerWidth - 48, y: 48 };
+    const r = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y));
+    try {
+      const vt = doc.startViewTransition(flip);
+      vt.ready
+        .then(() => {
+          root.animate(
+            { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${r}px at ${x}px ${y}px)`] },
+            { duration: 680, easing: "cubic-bezier(0.16, 1, 0.3, 1)", pseudoElement: "::view-transition-new(root)" },
+          );
+        })
+        .catch(() => undefined);
+      return;
+    } catch {
+      /* fall through to the CSS cross-fade */
+    }
+  }
+  root.classList.add("theme-transition");
+  window.setTimeout(() => root.classList.remove("theme-transition"), 420);
+  flip();
 }
 
 export function ThemeProvider({ initial, children }: { initial: ThemePref; children: React.ReactNode }) {

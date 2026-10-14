@@ -5,7 +5,8 @@ export const PROVIDER_META: Record<ProviderKind, { label: string; keyHint: strin
   anthropic: { label: "Anthropic", keyHint: "sk-ant-…", docs: "https://console.anthropic.com/settings/keys", needsBaseUrl: false },
   gemini: { label: "Google Gemini", keyHint: "AIza…", docs: "https://aistudio.google.com/apikey", needsBaseUrl: false },
   openrouter: { label: "OpenRouter", keyHint: "sk-or-…", docs: "https://openrouter.ai/keys", needsBaseUrl: false },
+  deepseek: { label: "DeepSeek", keyHint: "sk-…", docs: "https://platform.deepseek.com/api_keys", needsBaseUrl: false },
   custom: { label: "Custom endpoint", keyHint: "API key", docs: "", needsBaseUrl: true },
 };
 
-export const PROVIDER_ORDER: ProviderKind[] = ["openai", "anthropic", "gemini", "openrouter", "custom"];
+export const PROVIDER_ORDER: ProviderKind[] = ["openai", "anthropic", "gemini", "openrouter", "deepseek", "custom"];

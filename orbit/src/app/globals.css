@@ -607,6 +607,149 @@ html.theme-transition *::after {
   transform: rotateY(180deg);
 }
 
+/* ───────────────────────── FX layer: shader, motion, light ───────────────────────── */
+
+/* Ambient shader canvas: fades in once its first frame is ready. */
+.fx-ambient {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 1.2s var(--ease-orbit);
+}
+.fx-ambient[data-ready] {
+  opacity: 1;
+}
+.fx-ambient-local {
+  position: absolute;
+}
+
+/* Route progress line */
+.fx-progress {
+  background: linear-gradient(90deg, transparent, var(--ink) 30%, var(--ink));
+  box-shadow:
+    0 0 10px var(--glow),
+    0 0 2px var(--ink);
+  will-change: transform, opacity;
+}
+
+/* Cursor-following sheen on every card / panel */
+:where([data-spotlight], .rounded-2xl.bg-surface.border, .rounded-xl.bg-surface.border) {
+  transition:
+    border-color 320ms var(--ease-orbit),
+    box-shadow 320ms var(--ease-orbit),
+    transform 320ms var(--ease-orbit),
+    background-color 320ms var(--ease-orbit);
+}
+:where([data-spotlight], .rounded-2xl.bg-surface.border, .rounded-xl.bg-surface.border)[data-spot-active] {
+  background-image: radial-gradient(
+    480px circle at var(--mx, 50%) var(--my, 50%),
+    color-mix(in oklab, var(--ink) 5%, transparent),
+    transparent 62%
+  );
+  border-color: var(--line-strong);
+}
+:where(a.rounded-2xl.bg-surface, a.rounded-xl.bg-surface, a[data-spotlight]):hover {
+  transform: translateY(-2px);
+  box-shadow: var(--sh-lift);
+}
+:where(a.rounded-2xl.bg-surface, a.rounded-xl.bg-surface, a[data-spotlight]):active {
+  transform: translateY(0) scale(0.995);
+}
+
+/* Staggered entrance for page sections */
+@keyframes fx-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.fx-stagger > * {
+  animation: fx-rise 620ms var(--ease-orbit) both;
+}
+.fx-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.fx-stagger > *:nth-child(2) { animation-delay: 50ms; }
+.fx-stagger > *:nth-child(3) { animation-delay: 100ms; }
+.fx-stagger > *:nth-child(4) { animation-delay: 150ms; }
+.fx-stagger > *:nth-child(5) { animation-delay: 200ms; }
+.fx-stagger > *:nth-child(6) { animation-delay: 240ms; }
+.fx-stagger > *:nth-child(n + 7) { animation-delay: 280ms; }
+
+/* Dialogs & menus: scale + fade in and out (Radix data-state) */
+@keyframes fx-overlay-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fx-overlay-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes fx-pop-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes fx-pop-out {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: translateY(6px) scale(0.98); }
+}
+@keyframes fx-sheet-in { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes fx-sheet-out { from { transform: none; } to { transform: translateY(100%); } }
+@keyframes fx-drawer-in { from { transform: translateX(-100%); } to { transform: none; } }
+@keyframes fx-drawer-out { from { transform: none; } to { transform: translateX(-100%); } }
+@keyframes fx-side-in { from { transform: translateX(100%); } to { transform: none; } }
+@keyframes fx-side-out { from { transform: none; } to { transform: translateX(100%); } }
+@keyframes fx-menu-in {
+  from { opacity: 0; transform: translateY(-4px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+
+.fx-overlay[data-state="open"] { animation: fx-overlay-in 240ms var(--ease-orbit) both; }
+.fx-overlay[data-state="closed"] { animation: fx-overlay-out 180ms ease-in both; }
+.fx-dialog[data-state="open"] { animation: fx-sheet-in 420ms var(--ease-orbit) both; }
+.fx-dialog[data-state="closed"] { animation: fx-sheet-out 220ms ease-in both; }
+@media (min-width: 640px) {
+  .fx-dialog[data-state="open"] { animation: fx-pop-in 360ms var(--ease-orbit) both; }
+  .fx-dialog[data-state="closed"] { animation: fx-pop-out 180ms ease-in both; }
+}
+.fx-palette[data-state="open"] { animation: fx-pop-in 320ms var(--ease-orbit) both; }
+.fx-palette[data-state="closed"] { animation: fx-pop-out 160ms ease-in both; }
+.fx-side[data-state="open"] { animation: fx-side-in 460ms var(--ease-orbit) both; }
+.fx-side[data-state="closed"] { animation: fx-side-out 240ms ease-in both; }
+.fx-drawer[data-state="open"] { animation: fx-drawer-in 420ms var(--ease-orbit) both; }
+.fx-drawer[data-state="closed"] { animation: fx-drawer-out 240ms ease-in both; }
+[data-radix-popper-content-wrapper] > [role="menu"][data-state="open"] {
+  animation: fx-menu-in 200ms var(--ease-orbit) both;
+  transform-origin: var(--radix-dropdown-menu-content-transform-origin);
+}
+
+/* Theme switch: circular reveal via the View Transitions API */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-new(root) {
+  z-index: 2;
+}
+
+/* Inputs: soft focus halo */
+:where(input, textarea, select):focus-visible {
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--glow) 70%, transparent);
+  transition: box-shadow 200ms var(--ease-orbit);
+}
+
+/* Shimmering text for "thinking" / streaming states */
+@keyframes fx-shimmer-text {
+  to { background-position: -200% 0; }
+}
+.fx-shimmer-text {
+  background: linear-gradient(90deg, var(--ink-3) 0%, var(--ink) 45%, var(--ink-3) 60%) 0 0 / 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: fx-shimmer-text 1.8s linear infinite;
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *,

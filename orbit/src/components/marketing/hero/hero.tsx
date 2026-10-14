@@ -62,9 +62,19 @@ export function Hero() {
   useEffect(() => {
     const el = root.current;
     if (!el) return;
-    const io = new IntersectionObserver(([entry]) => setActive(entry.isIntersecting), { rootMargin: "120px" });
+    let visible = true;
+    const sync = () => setActive(visible && !document.hidden);
+    const io = new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      sync();
+    }, { rootMargin: "120px" });
     io.observe(el);
-    return () => io.disconnect();
+    // Also stop the GPU entirely while the tab is in the background.
+    document.addEventListener("visibilitychange", sync);
+    return () => {
+      io.disconnect();
+      document.removeEventListener("visibilitychange", sync);
+    };
   }, []);
 
   const quality: Quality =

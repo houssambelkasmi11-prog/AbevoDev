@@ -25,10 +25,11 @@ export function Dialog({
   return (
     <RD.Root open={open} onOpenChange={onOpenChange}>
       <RD.Portal>
-        <RD.Overlay className="fixed inset-0 z-[80] bg-black/40 backdrop-blur-[2px] data-[state=open]:animate-[rise_.25s_ease-out]" />
+        <RD.Overlay className="fixed inset-0 z-[80] fx-overlay bg-black/40 backdrop-blur-[3px]" />
         <RD.Content
           className={cn(
             "fixed z-[81] flex flex-col border border-line bg-surface text-ink shadow-lift focus:outline-none",
+            side === "center" ? "fx-dialog" : "fx-side",
             side === "center" &&
               "bottom-0 left-0 right-0 max-h-[92dvh] rounded-t-2xl sm:bottom-auto sm:left-1/2 sm:right-auto sm:top-1/2 sm:w-[min(560px,calc(100vw-32px))] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl",
             side === "right" && "bottom-0 right-0 top-0 w-[min(480px,100vw)] border-y-0 border-r-0",

@@ -84,7 +84,21 @@ function scheduleFlush(table: string): void {
         await writeAtomic(path.join(TABLE_DIR, `${t}.json`), JSON.stringify(rows));
       }
     });
-  }, 120);
+  }, 250);
+}
+
+/**
+ * Defensive copy of a row. Embedding vectors (1.5k floats per chunk) are
+ * never mutated by callers, so they're shared by reference instead of deep
+ * cloned — retrieval over large libraries is many times faster this way.
+ */
+function cloneRow<R>(row: R): R {
+  const r = row as unknown as Record<string, unknown>;
+  if (!("embedding" in r)) return structuredClone(row);
+  const { embedding, ...rest } = r;
+  const copy = structuredClone(rest) as Record<string, unknown>;
+  copy.embedding = embedding;
+  return copy as unknown as R;
 }
 
 function matches<T extends TableName>(row: Row<T>, where?: Where<T>): boolean {
@@ -125,13 +139,13 @@ export class LocalRepo implements Repo {
       });
     }
     if (opts.limit) out = out.slice(0, opts.limit);
-    return out.map((r) => structuredClone(r));
+    return out.map((r) => cloneRow(r));
   }
 
   async get<T extends TableName>(table: T, id: string): Promise<Row<T> | null> {
     const all = await this.rows(table);
     const row = all.find((r) => r.id === id && r.user_id === this.userId);
-    return row ? structuredClone(row) : null;
+    return row ? cloneRow(row) : null;
   }
 
   async insert<T extends TableName>(table: T, values: Insert<T>): Promise<Row<T>> {
@@ -156,7 +170,7 @@ export class LocalRepo implements Repo {
     });
     all.push(...created);
     scheduleFlush(table);
-    return created.map((r) => structuredClone(r));
+    return created.map((r) => cloneRow(r));
   }
 
   async update<T extends TableName>(table: T, id: string, patch: Patch<T>): Promise<Row<T>> {
@@ -172,7 +186,7 @@ export class LocalRepo implements Repo {
     } as unknown as Row<T>;
     all[idx] = next;
     scheduleFlush(table);
-    return structuredClone(next);
+    return cloneRow(next);
   }
 
   async remove(table: TableName, id: string): Promise<void> {

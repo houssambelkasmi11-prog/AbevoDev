@@ -13,7 +13,7 @@ export function NoProviderNotice({ message, compact }: { message?: string; compa
           <p className="label text-ink-3">Setup required</p>
           <p className="mt-1 text-[13.5px] font-medium">Connect an AI provider to use this.</p>
           <p className="mt-1 text-[12.5px] leading-relaxed text-ink-2">
-            {message ?? "ORBIT never fakes AI responses. Add your own OpenAI, Anthropic, Gemini, OpenRouter or compatible key — it's encrypted on the server."}
+            {message ?? "ORBIT never fakes AI responses. Add your own OpenAI, Anthropic, Gemini, OpenRouter, DeepSeek or compatible key — it's encrypted on the server."}
           </p>
           <Link href="/app/settings/providers" className="mt-3 inline-flex h-8 items-center rounded-lg bg-accent px-3 text-[12.5px] font-medium text-accent-ink">
             Connect a provider

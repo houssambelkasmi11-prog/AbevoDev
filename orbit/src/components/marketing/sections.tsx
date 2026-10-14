@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { OrbitGlyph, OrbitSymbol } from "@/components/brand/logo";
+import { AmbientShader } from "@/components/fx/ambient-shader";
 import { BUILTIN_PERSONAS } from "@/lib/ai/personas";
 import { PROVIDER_FACTS } from "@/lib/ai/provider-facts";
 import { gsap, ScrollTrigger, useGSAP } from "@/lib/client/gsap";
@@ -152,7 +153,7 @@ const FEATURES = [
     key: "models",
     title: "AI Model Freedom",
     headline: "Bring your own intelligence.",
-    copy: "Connect OpenAI, Anthropic, Google Gemini, OpenRouter or an OpenAI-compatible endpoint. Keys are encrypted server-side. Route each persona to the model you trust.",
+    copy: "Connect OpenAI, Anthropic, Google Gemini, OpenRouter, DeepSeek or an OpenAI-compatible endpoint. Keys are encrypted server-side. Route each persona to the model you trust.",
     cta: "Compare models",
     Preview: ModelsPreview,
   },
@@ -463,6 +464,7 @@ export function FinalCTA() {
   return (
     <section ref={root} aria-labelledby="cta-h" className="relative bg-void text-warm">
       <div data-iris-reveal className="noise relative flex min-h-[100svh] items-center justify-center overflow-hidden bg-obsidian px-5">
+        <AmbientShader forceDark className="fx-ambient-local" />
         <svg viewBox="0 0 800 800" className="pointer-events-none absolute left-1/2 top-1/2 h-[140vmin] w-[140vmin] -translate-x-1/2 -translate-y-1/2" aria-hidden>
           <g fill="none" stroke="#c9cdd1">
             {[380, 300, 220, 140].map((r, i) => (

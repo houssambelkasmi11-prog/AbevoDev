@@ -28,6 +28,30 @@ export async function streamJson(url: string, body: unknown, onEvent: (e: Client
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buf = "";
+
+  // Token deltas arrive dozens of times per second. Re-rendering (and
+  // re-parsing markdown/KaTeX/highlighting) on every one makes the UI stutter,
+  // so consecutive deltas are coalesced and delivered at most ~25×/s.
+  let pending = "";
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const flush = () => {
+    if (timer) clearTimeout(timer);
+    timer = null;
+    if (!pending) return;
+    const text = pending;
+    pending = "";
+    onEvent({ type: "delta", text });
+  };
+  const emit = (e: ClientStreamEvent) => {
+    if (e.type === "delta") {
+      pending += e.text;
+      if (!timer) timer = setTimeout(flush, 40);
+      return;
+    }
+    flush();
+    onEvent(e);
+  };
+
   try {
     for (;;) {
       const { done, value } = await reader.read();
@@ -38,14 +62,20 @@ export async function streamJson(url: string, body: unknown, onEvent: (e: Client
         const line = buf.slice(0, nl).trim();
         buf = buf.slice(nl + 1);
         if (!line) continue;
+        let parsed: ClientStreamEvent | null = null;
         try {
-          onEvent(JSON.parse(line) as ClientStreamEvent);
+          parsed = JSON.parse(line) as ClientStreamEvent;
         } catch {
           /* skip malformed line */
         }
+        if (parsed) emit(parsed);
       }
     }
   } catch (e) {
-    if ((e as Error).name !== "AbortError") throw e;
+    if ((e as Error).name !== "AbortError") {
+      flush();
+      throw e;
+    }
   }
+  flush();
 }

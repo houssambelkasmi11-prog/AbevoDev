@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { OrbitSymbol, Wordmark } from "@/components/brand/logo";
+import { AmbientShader } from "@/components/fx/ambient-shader";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="dark grid min-h-[100svh] bg-void text-warm lg:grid-cols-[1.05fr_1fr]">
       <aside className="noise relative hidden overflow-hidden border-r border-white/10 bg-obsidian lg:block">
+        <AmbientShader forceDark className="fx-ambient-local" />
         <div className="micro-grid absolute inset-0 opacity-60" />
         <svg viewBox="0 0 600 600" className="absolute left-1/2 top-1/2 h-[120%] w-[120%] -translate-x-1/2 -translate-y-1/2" aria-hidden>
           <g fill="none" stroke="#c9cdd1">

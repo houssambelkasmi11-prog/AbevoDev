@@ -406,7 +406,12 @@ export function ChatWorkspace({
                           {m.grounding === "grounded" ? <Badge tone="ok">Cited</Badge> : m.grounding === "partial" ? <Badge>Partly cited</Badge> : null}
                         </div>
                         {m.content.trimStart().startsWith(NOT_IN_SOURCES) || m.grounding === "ungrounded" ? <NotInSourcesBanner /> : null}
-                        {m.content ? <Markdown text={m.content} citations={m.citations} className="text-[15px]" /> : m.streaming ? <OrbitPulse className="h-5 w-5 text-ink" label="Thinking" /> : null}
+                        {m.content ? <Markdown text={m.content} citations={m.citations} className="text-[15px]" /> : m.streaming ? (
+                          <span className="flex items-center gap-2.5">
+                            <OrbitPulse className="h-5 w-5 text-ink" label="Thinking" />
+                            <span className="fx-shimmer-text font-mono text-[11px] uppercase tracking-[0.18em]">Thinking</span>
+                          </span>
+                        ) : null}
                         {m.error && m.error !== "Stopped by student" ? <p className="mt-2 text-[12.5px] text-danger">{m.error}</p> : null}
                         {m.error === "Stopped by student" ? <p className="label mt-2 text-ink-3">Stopped</p> : null}
                         {!m.streaming && m.content ? (

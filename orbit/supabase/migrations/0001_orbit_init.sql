@@ -143,7 +143,7 @@ create table public.credentials (
   user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  provider text not null check (provider in ('openai','anthropic','gemini','openrouter','custom')),
+  provider text not null check (provider in ('openai','anthropic','gemini','openrouter','deepseek','custom')),
   label text not null,
   base_url text,
   key_ciphertext text not null,

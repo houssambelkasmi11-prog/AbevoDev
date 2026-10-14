@@ -18,7 +18,9 @@ npm run dev        # http://localhost:3000
 
 Create an account at `/sign-up`. In local mode, data lives in `./.orbit-data/` (JSON tables, uploaded files, auth). You'll get a one-time **recovery code** at sign-up — that's the local-mode password reset.
 
-Then open **Settings → AI Providers** and connect at least one key (OpenAI, Anthropic, Google Gemini, OpenRouter, or an OpenAI-compatible endpoint). Everything AI-related is disabled — never faked — until you do.
+Then open **Settings → AI Providers** and connect at least one key (OpenAI, Anthropic, Google Gemini, OpenRouter, DeepSeek, or an OpenAI-compatible endpoint). Everything AI-related is disabled — never faked — until you do.
+
+**Fastest way to run it:** `npm run fast` (or double-click `start-orbit.bat` on Windows). It serves an optimised production build and only recompiles when your code, dependencies or `.env.local` changed, so pages open instantly instead of compiling on first visit. Use `npm run dev` (Turbopack, hot reload) or `start-orbit-dev.bat` while editing code. `npm run fast:rebuild` forces a fresh build.
 
 Useful scripts: `npm run typecheck`, `npm run build`, `npm start`.
 
@@ -33,6 +35,7 @@ Useful scripts: `npm run typecheck`, `npm run build`, `npm start`.
    NEXT_PUBLIC_SITE_URL=https://your-domain
    ORBIT_ENCRYPTION_KEY=...   # keep the one from `npm run setup`
    ```
+   Upgrading an existing Supabase project? Also run `supabase/migrations/0002_deepseek_provider.sql` to allow DeepSeek keys.
 3. In Supabase Auth → URL configuration, add `https://your-domain/auth/callback` as a redirect URL (email confirmation + password reset).
 
 All queries run with the signed-in user's JWT, so Postgres RLS is the primary guard; the repository layer adds an explicit `user_id` filter as defence in depth.
@@ -60,7 +63,7 @@ supabase/migrations/      schema + RLS + pgvector + storage policies
 ```
 
 - **Data access** — `Repo` is generic over a typed table map (`src/lib/types.ts`), so every read/write is type-checked and always scoped to the current user.
-- **AI providers** — `src/lib/ai/providers.ts` implements OpenAI, Anthropic, Gemini, OpenRouter and OpenAI-compatible endpoints over `fetch` with streaming. Model lists are fetched live (no hard-coded inventories). Parameters a model rejects (e.g. temperature on reasoning models) are stripped and retried automatically.
+- **AI providers** — `src/lib/ai/providers.ts` implements OpenAI, Anthropic, Gemini, OpenRouter, DeepSeek and OpenAI-compatible endpoints over `fetch` with streaming. Model lists are fetched live (no hard-coded inventories). Parameters a model rejects (e.g. temperature on reasoning models) are stripped and retried automatically.
 - **Personalities** — ATLAS, NOVA, AXIOM, SOCRATES, ECHO, PULSE are seeded as real behaviour configs (instructions, depth, length, language, temperature, model). Users can edit them or design their own.
 - **Grounding** — sources are chunked with page/heading metadata. Retrieval uses BM25 always, plus embeddings (OpenAI or Gemini; pgvector in hosted mode) when enabled, fused with reciprocal-rank fusion. Retrieved text is wrapped as untrusted data; answers cite `[S#]` keys that render as clickable chips; when sources don't cover a question the answer is flagged **Not in sources**.
 - **Background jobs** — ingestion runs after the response via `after()` with status/progress persisted and polled by the UI. On serverless hosting with tight time limits, move `processSource` to a queue worker (the function is self-contained).
@@ -84,5 +87,7 @@ supabase/migrations/      schema + RLS + pgvector + storage policies
 ## Design system
 
 Monochrome tokens live in `src/app/globals.css` (Tailwind v4 `@theme`). Display type is Cabinet Grotesk (Fontshare, ITF Free Font License), body Geist, editorial accents Instrument Serif Italic, metadata JetBrains Mono. The orbital emblem is `src/components/brand/logo.tsx`; the same geometry powers the favicon, the Learning Pulse loader, empty states and the focus timer.
+
+**Motion & shaders.** The workspace sits on a living WebGL fragment shader (`src/components/fx/ambient-shader.tsx`: domain-warped fbm nebula + precessing orbit paths + pointer light) rendered at reduced resolution, capped at 30 fps, paused when hidden or off-screen, and re-tinted on theme change. Cards get a cursor-following sheen, routes show a luminous progress line and soft page transitions, dialogs/menus scale in, and the theme switch blooms out from the click point (View Transitions API). Settings → General → *Motion & effects* switches between Full, Lite (low-power) and Off per device.
 
 Reduced motion is respected everywhere: the hero becomes a static editorial layout, Lenis is disabled, and CSS animations collapse.

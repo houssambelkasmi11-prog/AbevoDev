@@ -1,12 +1,13 @@
 "use client";
 
-import { Monitor, Moon, Sun, Trash2 } from "lucide-react";
+import { Monitor, Moon, Sparkles, Sun, Trash2, Wind, ZapOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { OrbitGlyph } from "@/components/brand/logo";
 import { Panel } from "@/components/app/page-header";
 import { NewSubjectDialog } from "@/components/app/create-menu";
 import { useTheme } from "@/components/app/theme";
+import { type FxLevel, useFxLevel, writeFx } from "@/components/fx/fx-prefs";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog, Dialog } from "@/components/ui/dialog";
 import { Field, Input, Select } from "@/components/ui/field";
@@ -46,6 +47,7 @@ export function GeneralSettings({
   const toast = useToast();
   const router = useRouter();
   const { pref, setPref } = useTheme();
+  const fx = useFxLevel();
   const [s, setS] = useState(settings);
   const [pending, start] = useTransition();
   const [wsName, setWsName] = useState(workspace.name);
@@ -112,6 +114,32 @@ export function GeneralSettings({
               aria-checked={pref === k}
               onClick={() => setPref(k)}
               className={cn("flex h-20 flex-col items-center justify-center gap-2 rounded-xl border text-[13px]", pref === k ? "border-ink bg-soft" : "border-line hover:border-ink-2")}
+            >
+              <Icon className="h-4 w-4" /> {l}
+            </button>
+          ))}
+        </div>
+      </Panel>
+
+      <Panel title="Motion & effects">
+        <p className="mb-4 text-[13px] leading-relaxed text-ink-2">
+          The living shader backdrop and cursor lighting. <span className="text-ink">Lite</span> renders at lower resolution and frame rate for
+          laptops on battery; <span className="text-ink">Off</span> removes the shader entirely. Saved on this device.
+        </p>
+        <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Visual effects">
+          {(
+            [
+              ["full", "Full", Sparkles],
+              ["lite", "Lite", Wind],
+              ["off", "Off", ZapOff],
+            ] as [FxLevel, string, typeof Sun][]
+          ).map(([k, l, Icon]) => (
+            <button
+              key={k}
+              role="radio"
+              aria-checked={fx === k}
+              onClick={() => writeFx(k)}
+              className={cn("flex h-20 flex-col items-center justify-center gap-2 rounded-xl border text-[13px] transition-colors", fx === k ? "border-ink bg-soft" : "border-line hover:border-ink-2")}
             >
               <Icon className="h-4 w-4" /> {l}
             </button>

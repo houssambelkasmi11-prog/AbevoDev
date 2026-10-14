@@ -5,7 +5,10 @@
   "description": "ORBIT \u2014 a cinematic, AI-powered learning universe.",
   "scripts": {
     "setup": "node scripts/setup.mjs",
-    "dev": "next dev",
+    "dev": "next dev --turbopack",
+    "dev:webpack": "next dev",
+    "fast": "node scripts/start.mjs",
+    "fast:rebuild": "node scripts/start.mjs --rebuild",
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit"

@@ -75,6 +75,7 @@ const NON_CHAT = /(embed|embedding|whisper|tts|dall-e|davinci|babbage|moderation
 function openAIBase(conn: ProviderConnection): string {
   if (conn.kind === "openai") return "https://api.openai.com/v1";
   if (conn.kind === "openrouter") return "https://openrouter.ai/api/v1";
+  if (conn.kind === "deepseek") return "https://api.deepseek.com";
   if (!conn.baseUrl) throw new ProviderError("Custom endpoint has no base URL.");
   return conn.baseUrl.replace(/\/+$/, "");
 }
@@ -109,7 +110,13 @@ interface OpenAIModelEntry {
   architecture?: { input_modalities?: string[]; modality?: string };
 }
 
-function makeOpenAICompatible(kind: "openai" | "openrouter" | "custom", label: string): ProviderAdapter {
+/** Used only if DeepSeek's /models endpoint is unavailable (the key is still verified by a 401). */
+const DEEPSEEK_FALLBACK_MODELS: ModelInfo[] = [
+  { id: "deepseek-flash", label: "DeepSeek Flash", contextWindow: null, vision: false, inputPrice: null, outputPrice: null },
+  { id: "deepseek-v4-pro", label: "DeepSeek V4 Pro", contextWindow: null, vision: false, inputPrice: null, outputPrice: null },
+];
+
+function makeOpenAICompatible(kind: "openai" | "openrouter" | "deepseek" | "custom", label: string): ProviderAdapter {
   return {
     kind,
     label,
@@ -119,6 +126,7 @@ function makeOpenAICompatible(kind: "openai" | "openrouter" | "custom", label: s
     async listModels(conn) {
       await guardCustom(conn);
       const res = await fetch(`${openAIBase(conn)}/models`, { headers: openAIHeaders(conn), cache: "no-store" });
+      if (kind === "deepseek" && (res.status === 404 || res.status === 405)) return DEEPSEEK_FALLBACK_MODELS;
       if (!res.ok) throw await toProviderError(res, label);
       const json = (await res.json()) as { data?: OpenAIModelEntry[] };
       const models = (json.data ?? []).filter((m) => kind !== "openai" || !NON_CHAT.test(m.id));
@@ -401,6 +409,7 @@ export const PROVIDERS: Record<ProviderKind, ProviderAdapter> = {
   anthropic,
   gemini,
   openrouter: makeOpenAICompatible("openrouter", "OpenRouter"),
+  deepseek: makeOpenAICompatible("deepseek", "DeepSeek"),
   custom: makeOpenAICompatible("custom", "Custom endpoint"),
 };
 

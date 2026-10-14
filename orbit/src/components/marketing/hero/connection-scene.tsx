@@ -860,7 +860,7 @@ function Composition({ quality }: { quality: Quality }) {
 export default function ConnectionScene({ quality, active }: { quality: Quality; active: boolean }) {
   return (
     <Canvas
-      dpr={quality === "high" ? [1, 1.75] : [1, 1.4]}
+      dpr={quality === "high" ? [1, 1.5] : [1, 1.15]}
       frameloop={active ? "always" : "never"}
       gl={{ antialias: quality === "high", powerPreference: "high-performance", alpha: false, stencil: false }}
       camera={{ position: [0, 0.25, 9.6], fov: 35, near: 0.1, far: 120 }}
