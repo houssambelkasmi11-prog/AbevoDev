@@ -36,13 +36,18 @@ function run(cmd, args, env) {
   });
 }
 
-const env = { ORBIT_DIST: DIST, NEXT_TELEMETRY_DISABLED: "1" };
+const env = { ORBIT_DIST: DIST, ORBIT_FAST: "1", NEXT_TELEMETRY_DISABLED: "1" };
 const fp = fingerprint();
 const prev = existsSync(STAMP) ? readFileSync(STAMP, "utf8").trim() : "";
 
 if (force || fp !== prev || !existsSync(join(root, DIST, "BUILD_ID"))) {
   console.log("[ORBIT] Changes detected — building an optimised version (only needed after updates)…");
-  await run("npx", ["next", "build"], env);
+  try {
+    await run("npx", ["next", "build"], env);
+  } catch {
+    console.error("\n[ORBIT] The build failed — the first error is shown above. Send it over and it can be fixed.");
+    process.exit(1);
+  }
   writeFileSync(STAMP, fingerprint());
 } else {
   console.log("[ORBIT] Build is up to date — skipping compile.");

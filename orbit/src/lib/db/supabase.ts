@@ -16,6 +16,16 @@ export class SupabaseRepo implements Repo {
     private readonly db: SupabaseClient,
   ) {}
 
+  /**
+   * The client has no generated database types, and newer postgrest-js
+   * typings reject dynamic table/column names. Queries therefore go through a
+   * loosely typed handle; the Repo interface above keeps callers type-safe.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private from(table: TableName): any {
+    return this.db.from(table);
+  }
+
   private normalize<T extends TableName>(table: T, row: unknown): Row<T> {
     const r = row as Record<string, unknown>;
     if (table === "source_chunks" && typeof r.embedding === "string") {
@@ -29,7 +39,7 @@ export class SupabaseRepo implements Repo {
   }
 
   async list<T extends TableName>(table: T, opts: ListOptions<T> = {}): Promise<Row<T>[]> {
-    let q = this.db.from(table).select("*").eq("user_id", this.userId);
+    let q = this.from(table).select("*").eq("user_id", this.userId);
     if (opts.where) {
       for (const [k, v] of Object.entries(opts.where)) {
         if (v === undefined) continue;
@@ -48,7 +58,7 @@ export class SupabaseRepo implements Repo {
   }
 
   async get<T extends TableName>(table: T, id: string): Promise<Row<T> | null> {
-    const { data, error } = await this.db.from(table).select("*").eq("id", id).eq("user_id", this.userId).maybeSingle();
+    const { data, error } = await this.from(table).select("*").eq("id", id).eq("user_id", this.userId).maybeSingle();
     if (error) throw new Error(`[db] ${table}.get: ${error.message}`);
     return data ? this.normalize(table, data) : null;
   }
@@ -61,7 +71,7 @@ export class SupabaseRepo implements Repo {
   async insertMany<T extends TableName>(table: T, values: Insert<T>[]): Promise<Row<T>[]> {
     if (values.length === 0) return [];
     const payload = values.map((v) => ({ ...DEFAULTS[table](), ...v, user_id: this.userId }));
-    const { data, error } = await this.db.from(table).insert(payload).select("*");
+    const { data, error } = await this.from(table).insert(payload).select("*");
     if (error) throw new Error(`[db] ${table}.insert: ${error.message}`);
     return (data ?? []).map((r: unknown) => this.normalize(table, r));
   }
@@ -80,12 +90,12 @@ export class SupabaseRepo implements Repo {
   }
 
   async remove(table: TableName, id: string): Promise<void> {
-    const { error } = await this.db.from(table).delete().eq("id", id).eq("user_id", this.userId);
+    const { error } = await this.from(table).delete().eq("id", id).eq("user_id", this.userId);
     if (error) throw new Error(`[db] ${table}.remove: ${error.message}`);
   }
 
   async removeWhere<T extends TableName>(table: T, where: Where<T>): Promise<number> {
-    let q = this.db.from(table).delete({ count: "exact" }).eq("user_id", this.userId);
+    let q = this.from(table).delete({ count: "exact" }).eq("user_id", this.userId);
     for (const [k, v] of Object.entries(where)) {
       if (v === undefined) continue;
       q = v === null ? q.is(k, null) : q.eq(k, v as string | number | boolean);
@@ -96,7 +106,7 @@ export class SupabaseRepo implements Repo {
   }
 
   async count<T extends TableName>(table: T, where?: Where<T>): Promise<number> {
-    let q = this.db.from(table).select("id", { count: "exact", head: true }).eq("user_id", this.userId);
+    let q = this.from(table).select("id", { count: "exact", head: true }).eq("user_id", this.userId);
     for (const [k, v] of Object.entries(where ?? {})) {
       if (v === undefined) continue;
       q = v === null ? q.is(k, null) : q.eq(k, v as string | number | boolean);

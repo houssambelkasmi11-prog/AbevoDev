@@ -750,6 +750,48 @@ html.theme-transition *::after {
   animation: fx-shimmer-text 1.8s linear infinite;
 }
 
+/* ───────────────────────── Universe (3D) labels ───────────────────────── */
+.cosmos-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  padding: 3px 8px 3px 7px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.78);
+  background: rgba(6, 8, 12, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.9);
+  pointer-events: none;
+  user-select: none;
+  animation: fx-overlay-in 400ms var(--ease-orbit) both;
+}
+.cosmos-label-strong {
+  font-size: 10.5px;
+  color: #fff;
+  background: rgba(6, 8, 12, 0.6);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+.cosmos-label-text {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cosmos-label-meta {
+  color: rgba(255, 255, 255, 0.42);
+  letter-spacing: 0.1em;
+}
+.cosmos-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  box-shadow: 0 0 8px currentColor;
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *,

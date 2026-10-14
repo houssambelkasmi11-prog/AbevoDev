@@ -14,6 +14,9 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   // Linting is optional for this project; type-checking still runs on build.
   eslint: { ignoreDuringBuilds: true },
+  // The one-click launcher (`npm run fast`) never refuses to start over a type
+  // error — just like dev mode. `npm run build` / `npm run typecheck` still check.
+  typescript: { ignoreBuildErrors: process.env.ORBIT_FAST === "1" },
   // Server-only document parsers stay out of the client bundle.
   serverExternalPackages: ["mammoth", "unpdf", "pdf-lib", "docx"],
   experimental: {

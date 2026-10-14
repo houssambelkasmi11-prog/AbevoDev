@@ -32,41 +32,12 @@ import type { EdgeKind, EntityType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { createConcept, deleteConcept, saveNodePositions, setEdgeStatus, suggestConnections } from "@/server/actions/graph";
 import { linkEntities } from "@/server/actions/notes";
+import { KIND_LABEL, type GEdge, type GNode } from "./universe-types";
 
-export interface GNode {
-  id: string;
-  type: EntityType;
-  label: string;
-  subjectId: string | null;
-  glyph: number;
-  x: number;
-  y: number;
-  snippet: string;
-  href: string | null;
-  createdAt: string;
-  degree: number;
-}
-
-export interface GEdge {
-  id: string;
-  source: string;
-  target: string;
-  kind: EdgeKind;
-  origin: "user" | "ai" | "implicit";
-  status: "approved" | "suggested";
-  rationale: string | null;
-}
+export type { GEdge, GNode } from "./universe-types";
 
 type NodeData = { node: GNode; dim: boolean; fresh: boolean };
 type FlowNode = Node<NodeData>;
-
-const KIND_LABEL: Record<EdgeKind, string> = {
-  belongs_to: "Belongs to",
-  references: "References",
-  builds_upon: "Builds upon",
-  related: "Related concept",
-  prerequisite: "Prerequisite",
-};
 
 const DASH: Record<EdgeKind, string | undefined> = {
   belongs_to: "1 5",
@@ -154,7 +125,7 @@ function toFlowEdges(edges: GEdge[], showSuggested: boolean): Edge[] {
     })) as Edge[];
 }
 
-function Graph({ nodes: gNodes, edges: gEdges, subjects, hasProvider }: { nodes: GNode[]; edges: GEdge[]; subjects: { id: string; name: string }[]; hasProvider: boolean }) {
+function Graph({ nodes: gNodes, edges: gEdges, subjects, hasProvider, viewSwitch }: { nodes: GNode[]; edges: GEdge[]; subjects: { id: string; name: string }[]; hasProvider: boolean; viewSwitch?: React.ReactNode }) {
   const router = useRouter();
   const params = useSearchParams();
   const toast = useToast();
@@ -241,6 +212,7 @@ function Graph({ nodes: gNodes, edges: gEdges, subjects, hasProvider }: { nodes:
             {gNodes.filter((n) => n.type !== "subject").length} stars · {subjects.length} clusters
           </p>
         </div>
+        {viewSwitch ? <div className="pointer-events-auto">{viewSwitch}</div> : null}
         <form
           className="pointer-events-auto relative"
           onSubmit={(e) => {
@@ -441,7 +413,7 @@ function Graph({ nodes: gNodes, edges: gEdges, subjects, hasProvider }: { nodes:
   );
 }
 
-export function UniverseGraph(props: { nodes: GNode[]; edges: GEdge[]; subjects: { id: string; name: string }[]; hasProvider: boolean }) {
+export function UniverseGraph(props: { nodes: GNode[]; edges: GEdge[]; subjects: { id: string; name: string }[]; hasProvider: boolean; viewSwitch?: React.ReactNode }) {
   return (
     <ReactFlowProvider>
       <Graph {...props} />

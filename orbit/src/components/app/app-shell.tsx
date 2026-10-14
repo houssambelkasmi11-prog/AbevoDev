@@ -74,7 +74,7 @@ function ShellInner({ user, workspace, workspaces, children }: ShellProps) {
   return (
     <div className="relative isolate flex min-h-[100dvh] bg-canvas text-ink">
       {/* Living shader backdrop + global motion helpers */}
-      {focusMode ? null : <AmbientShader />}
+      {focusMode || pathname.startsWith("/app/universe") ? null : <AmbientShader />}
       <Suspense fallback={null}>
         <RouteProgress />
       </Suspense>

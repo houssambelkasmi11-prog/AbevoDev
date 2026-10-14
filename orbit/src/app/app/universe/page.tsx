@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { UniverseGraph } from "@/components/universe/universe-graph";
+import { UniverseView } from "@/components/universe/universe-view";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getContext } from "@/lib/bootstrap";
 import { loadGraph } from "@/lib/graph";
@@ -19,7 +19,7 @@ export default async function UniversePage() {
     return (
       <div className="px-5 py-16">
         <EmptyState
-          body="Your universe forms as you learn. Create subjects, write notes and add lessons — each becomes a star, and relationships become constellations."
+          body="Your universe forms as you learn. Every subject ignites as a star, its notes and lessons become planets orbiting it, and the links between them glow across the galaxy."
           action={
             <Link href="/app/notes" className="inline-flex h-10 items-center rounded-xl bg-accent px-4 text-sm text-accent-ink">
               Create your first note
@@ -31,7 +31,7 @@ export default async function UniversePage() {
   }
   return (
     <Suspense>
-      <UniverseGraph nodes={graph.nodes} edges={graph.edges} subjects={subjects.map((s) => ({ id: s.id, name: s.name }))} hasProvider={creds > 0} />
+      <UniverseView nodes={graph.nodes} edges={graph.edges} subjects={subjects.map((s) => ({ id: s.id, name: s.name }))} hasProvider={creds > 0} workspaceName={workspace.name} />
     </Suspense>
   );
 }
