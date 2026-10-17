@@ -2,7 +2,7 @@ import { OrbitPulse } from "@/components/brand/logo";
 
 export default function Loading() {
   return (
-    <div className="mx-auto max-w-6xl px-5 py-10 md:px-10">
+    <div className="fx-delayed mx-auto max-w-6xl px-5 py-10 md:px-10">
       <div className="flex items-center gap-3 text-ink-2">
         <OrbitPulse className="h-5 w-5 text-ink" label="Loading" />
         <span className="label">Loading</span>

@@ -834,6 +834,28 @@ html.theme-transition *::after {
 .orbit-landing [data-auth-shell] form > *:nth-child(6) { animation-delay: 400ms; }
 .orbit-landing [data-auth-shell] form > *:nth-child(n + 7) { animation-delay: 460ms; }
 
+/* ── Public site: scroll reveal + page fade ──────────────────────── */
+[data-reveal] {
+  transition:
+    opacity 900ms var(--ease-orbit),
+    transform 1100ms var(--ease-orbit),
+    filter 900ms var(--ease-orbit);
+  transition-delay: calc(var(--reveal-delay, 0) * 1ms);
+}
+html.reveal-ready [data-reveal]:not([data-revealed]) {
+  opacity: 0;
+  transform: translateY(28px);
+  filter: blur(6px);
+}
+@keyframes fx-page-fade { from { opacity: 0; } to { opacity: 1; } }
+.fx-page-fade { animation: fx-page-fade 520ms var(--ease-orbit) both; }
+
+/* Loading states only appear if loading actually takes a moment (no flash). */
+.fx-delayed { animation: fx-overlay-in 320ms ease-out 180ms both; }
+
+/* Quiet, theme-aware scrollbars */
+html { scrollbar-width: thin; scrollbar-color: rgba(140, 144, 150, 0.4) transparent; }
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *,

@@ -9,6 +9,7 @@ import { Wordmark } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
 import { Magnetic } from "./magnetic";
 import { scrollToHash } from "./smooth-scroll";
+import { playWarp } from "@/components/fx/warp";
 
 const LINKS = [
   { href: "/#platform", label: "Platform" },
@@ -148,11 +149,11 @@ export function MarketingNav() {
               </ul>
               <div className="mt-auto flex flex-col gap-3">
                 {signedIn ? null : (
-                  <button onClick={() => { setOpen(false); router.push("/sign-in"); }} className="h-12 rounded-full border border-white/15 font-mono text-[11px] uppercase tracking-[0.2em]">
+                  <button onClick={() => { setOpen(false); playWarp({ label: "Approaching ORBIT", mode: "approach" }); router.push("/sign-in"); }} className="h-12 rounded-full border border-white/15 font-mono text-[11px] uppercase tracking-[0.2em]">
                     Sign In
                   </button>
                 )}
-                <button onClick={() => { setOpen(false); router.push(signedIn ? "/app" : "/sign-up"); }} className="h-12 rounded-full bg-warm font-mono text-[11px] uppercase tracking-[0.2em] text-void">
+                <button onClick={() => { setOpen(false); playWarp(signedIn ? { label: "Entering your universe", mode: "enter" } : { label: "Preparing your universe", mode: "approach" }); router.push(signedIn ? "/app" : "/sign-up"); }} className="h-12 rounded-full bg-warm font-mono text-[11px] uppercase tracking-[0.2em] text-void">
                   {signedIn ? "Open ORBIT" : "Enter ORBIT"}
                 </button>
               </div>

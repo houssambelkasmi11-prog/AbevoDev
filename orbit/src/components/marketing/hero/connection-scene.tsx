@@ -702,6 +702,7 @@ function LabelProjector({ data, humanRef, aiRef }: { data: NetworkData; humanRef
   const size = useThree((s) => s.size);
   const tmp = useMemo(() => new THREE.Vector3(), []);
   const world = useMemo(() => new THREE.Vector3(), []);
+  const halfWidths = useMemo(() => new WeakMap<HTMLElement, number>(), []);
 
   useFrame(({ camera }) => {
     const p = heroState.progress;
@@ -710,8 +711,16 @@ function LabelProjector({ data, humanRef, aiRef }: { data: NetworkData; humanRef
       if (!el) return;
       tmp.copy(pos).project(camera);
       const behind = tmp.z > 1;
-      const x = (tmp.x * 0.5 + 0.5) * size.width;
-      const y = (-tmp.y * 0.5 + 0.5) * size.height;
+      let half = halfWidths.get(el);
+      if (half === undefined) {
+        half = el.offsetWidth / 2;
+        if (half > 0) halfWidths.set(el, half);
+      }
+      // Keep labels fully on screen (they're centred on their anchor).
+      const margin = 14;
+      const rawX = (tmp.x * 0.5 + 0.5) * size.width;
+      const x = Math.min(size.width - half - margin, Math.max(half + margin, rawX));
+      const y = Math.min(size.height - 24, Math.max(24, (-tmp.y * 0.5 + 0.5) * size.height));
       el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
       el.style.opacity = behind ? "0" : opacity.toFixed(3);
     };

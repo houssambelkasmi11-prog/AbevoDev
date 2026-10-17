@@ -3,6 +3,7 @@ import { MarketingNav } from "@/components/marketing/nav";
 import { Footer } from "@/components/marketing/sections";
 import { SmoothScroll } from "@/components/marketing/smooth-scroll";
 import { WarpLinks } from "@/components/fx/warp";
+import { RevealObserver } from "@/components/marketing/reveal";
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -13,6 +14,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
         <Footer />
         <CursorHalo />
         <WarpLinks />
+        <RevealObserver />
       </div>
     </SmoothScroll>
   );

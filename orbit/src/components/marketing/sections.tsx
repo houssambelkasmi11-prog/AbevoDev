@@ -18,7 +18,7 @@ import { Magnetic } from "./magnetic";
 
 export function SectionLabel({ index, children }: { index: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-4 font-mono text-[10px] uppercase tracking-[0.2em] text-muted">
+    <div data-reveal className="flex items-center gap-4 font-mono text-[10px] uppercase tracking-[0.2em] text-muted">
       <span className="text-warm">{index}</span>
       <span className="h-px w-10 bg-white/15" />
       <span>{children}</span>
@@ -86,9 +86,9 @@ export function IntroSection() {
       <div className="mx-auto grid max-w-[1400px] gap-16 lg:grid-cols-[1.2fr_1fr] lg:items-center">
         <div>
           <SectionLabel index="A">The introduction</SectionLabel>
-          <h2 id="intro-h" className="display mt-10 text-[clamp(3rem,8vw,7.5rem)]">
+          <h2 id="intro-h" data-reveal className="display mt-10 text-[clamp(3rem,8vw,7.5rem)]">
             A second mind.
-            <span className="serif-accent block font-normal text-silver">Built for yours.</span>
+            <span data-reveal style={{ "--reveal-delay": 140 } as React.CSSProperties} className="serif-accent block font-normal text-silver">Built for yours.</span>
           </h2>
           <p className="mt-12 max-w-2xl text-[clamp(1.25rem,2.2vw,1.85rem)] leading-[1.35] tracking-tight">
             {copy.split(" ").map((w, i) => (
@@ -188,9 +188,9 @@ export function FeatureStage() {
       <div className="mx-auto max-w-[1400px]">
         <div className="border-t border-white/10 pt-16">
           <SectionLabel index="B">Everything in one universe</SectionLabel>
-          <h2 id="system-h" className="display mt-8 max-w-4xl text-[clamp(2.6rem,6vw,5.5rem)]">
+          <h2 id="system-h" data-reveal className="display mt-8 max-w-4xl text-[clamp(2.6rem,6vw,5.5rem)]">
             Six instruments.
-            <span className="serif-accent block font-normal text-silver">One system of thought.</span>
+            <span data-reveal style={{ "--reveal-delay": 140 } as React.CSSProperties} className="serif-accent block font-normal text-silver">One system of thought.</span>
           </h2>
         </div>
 
@@ -284,9 +284,9 @@ export function HowItWorks({ standalone = false }: { standalone?: boolean }) {
       <div className="mx-auto max-w-[1400px]">
         <div className={cn(!standalone && "border-t border-white/10 pt-16")}>
           <SectionLabel index="C">How ORBIT works</SectionLabel>
-          <h2 id="how-h" className="display mt-8 text-[clamp(2.6rem,6vw,5.5rem)]">
+          <h2 id="how-h" data-reveal className="display mt-8 text-[clamp(2.6rem,6vw,5.5rem)]">
             Capture. Connect.
-            <span className="serif-accent block font-normal text-silver">Expand.</span>
+            <span data-reveal style={{ "--reveal-delay": 140 } as React.CSSProperties} className="serif-accent block font-normal text-silver">Expand.</span>
           </h2>
         </div>
 
@@ -347,9 +347,9 @@ export function ChooseIntelligence({ standalone = false }: { standalone?: boolea
       <div className="mx-auto max-w-[1400px]">
         <div className={cn(!standalone && "border-t border-white/10 pt-16")}>
           <SectionLabel index="D">Choose your intelligence</SectionLabel>
-          <h2 id="models-h" className="display mt-8 max-w-5xl text-[clamp(2.6rem,6vw,5.5rem)]">
+          <h2 id="models-h" data-reveal className="display mt-8 max-w-5xl text-[clamp(2.6rem,6vw,5.5rem)]">
             Two dials.
-            <span className="serif-accent block font-normal text-silver">Set independently.</span>
+            <span data-reveal style={{ "--reveal-delay": 140 } as React.CSSProperties} className="serif-accent block font-normal text-silver">Set independently.</span>
           </h2>
           <p className="mt-8 max-w-2xl text-[16px] leading-relaxed text-silver">
             The <em className="serif-accent text-warm">personality</em> decides how you are taught. The <em className="serif-accent text-warm">model</em> decides which
@@ -481,9 +481,9 @@ export function FinalCTA() {
         </svg>
         <div className="relative z-10 text-center">
           <OrbitSymbol className="mx-auto h-10 w-10 text-warm" strokeWidth={1.2} />
-          <h2 id="cta-h" className="display mx-auto mt-10 max-w-5xl text-[clamp(2.8rem,8vw,8rem)]">
+          <h2 id="cta-h" data-reveal className="display mx-auto mt-10 max-w-5xl text-[clamp(2.8rem,8vw,8rem)]">
             The universe is
-            <span className="serif-accent block font-normal text-silver">yours to understand.</span>
+            <span data-reveal style={{ "--reveal-delay": 140 } as React.CSSProperties} className="serif-accent block font-normal text-silver">yours to understand.</span>
           </h2>
           <div className="mt-12 flex justify-center">
             <Magnetic>
@@ -551,11 +551,15 @@ export function PageIntro({ index, label, title, accent, body }: { index: string
     <section className="bg-void px-5 pb-10 pt-40 text-warm md:px-10 md:pt-48">
       <div className="mx-auto max-w-[1400px]">
         <SectionLabel index={index}>{label}</SectionLabel>
-        <h1 className="display mt-10 max-w-5xl text-[clamp(3rem,9vw,8.5rem)]">
+        <h1 data-reveal className="display mt-10 max-w-5xl text-[clamp(3rem,9vw,8.5rem)]">
           {title}
-          <span className="serif-accent block font-normal text-silver">{accent}</span>
+          <span data-reveal style={{ "--reveal-delay": 140 } as React.CSSProperties} className="serif-accent block font-normal text-silver">
+            {accent}
+          </span>
         </h1>
-        <p className="mt-10 max-w-2xl text-[17px] leading-relaxed text-silver">{body}</p>
+        <p data-reveal style={{ "--reveal-delay": 260 } as React.CSSProperties} className="mt-10 max-w-2xl text-[17px] leading-relaxed text-silver">
+          {body}
+        </p>
       </div>
     </section>
   );

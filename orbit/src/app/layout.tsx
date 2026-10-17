@@ -26,6 +26,12 @@ export const metadata: Metadata = {
     title: "ORBIT — Your mind. In motion.",
     description: "Human curiosity. Artificial intelligence. Infinite understanding.",
     type: "website",
+    siteName: "ORBIT",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ORBIT — Your mind. In motion.",
+    description: "Human curiosity. Artificial intelligence. Infinite understanding.",
   },
 };
 
@@ -39,7 +45,7 @@ export const viewport: Viewport = {
  * Runs before paint: the public site is always dark; the workspace honours the
  * stored preference (or the OS setting) so there is no theme flicker.
  */
-const themeScript = `(function(){try{var d=document.documentElement;var p=location.pathname;if(p.indexOf('/app')===0){var t=localStorage.getItem('orbit-theme');if(t==='dark'||(!t&&matchMedia('(prefers-color-scheme: dark)').matches)){d.classList.add('dark')}}else{d.classList.add('dark')}}catch(e){}})();`;
+const themeScript = `(function(){try{var d=document.documentElement;var p=location.pathname;if(p.indexOf('/app')===0){var t=localStorage.getItem('orbit-theme');if(t==='dark'||(!t&&matchMedia('(prefers-color-scheme: dark)').matches)){d.classList.add('dark')}}else{d.classList.add('dark');if(!matchMedia('(prefers-reduced-motion: reduce)').matches){d.classList.add('reveal-ready');setTimeout(function(){if(!window.__orbitReveal)d.classList.remove('reveal-ready')},4000)}}}catch(e){}})();`;
 
 const DISPLAY_FONT_CSS = "https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@500,700,800&display=swap";
 const fontScript = `(function(){var l=document.createElement('link');l.rel='stylesheet';l.href=${JSON.stringify(DISPLAY_FONT_CSS)};document.head.appendChild(l)})();`;
