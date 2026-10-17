@@ -97,9 +97,10 @@ export function Hero() {
       });
       gsap.from(q("[data-p1-sub], [data-hud]"), { opacity: 0, y: 14, duration: 1.2, ease: "power3.out", stagger: 0.08, delay: 0.9 });
 
-      // Scene-stepped story: each swipe / wheel gesture / key press plays exactly
-      // one chapter. While a chapter plays, input is swallowed; the next gesture
-      // only counts once it has finished (and trackpad inertia has died down).
+      // The story timeline is driven by a *paced* progress value rather than
+      // raw scroll: however hard you fling the wheel, each scene gets its
+      // moment. The page is held inside the pinned hero until the story has
+      // caught up (in-page jumps bypass this via heroState.bypassUntil).
       const tl = gsap.timeline({ paused: true, defaults: { ease: "none" } });
       const st = ScrollTrigger.create({
         trigger: root.current,
@@ -109,26 +110,20 @@ export function Hero() {
         anticipatePin: 1,
       });
 
-      /** Resting points: each one shows a chapter fully. */
-      const STOPS = [0, 0.28, 0.51, 0.73, 1];
-      const STEP_S = small ? 1.35 : 1.6;
-      const state = { p: 0 };
-      let idx = 0;
-      let busy = false; // a chapter (or the exit) is playing
+      const MAX_RATE = small ? 0.16 : 0.12; // story progress per second at most (≈ 6–8 s end to end)
+      const FOLLOW = 4.2; // exponential catch-up rate (1/s)
+      const LEAD = 0.03; // how far scroll may run ahead of the story before it's held
+      let shown = st.progress;
       let lastIdx = -1;
-      let lastWheelAt = 0;
-      let lastWheelMag = 0;
-      let touchY: number | null = null;
-      let touchFired = false;
-      let tween: gsap.core.Tween | null = null;
+      let last = performance.now();
 
       const render = (p: number) => {
         tl.progress(p);
         heroState.progress = p;
-        const sIdx = Math.max(0, SCENES.findIndex((s) => p >= s.from && p <= s.to));
-        if (sIdx !== lastIdx) {
-          lastIdx = sIdx;
-          const scene = SCENES[sIdx];
+        const idx = Math.max(0, SCENES.findIndex((s) => p >= s.from && p <= s.to));
+        if (idx !== lastIdx) {
+          lastIdx = idx;
+          const scene = SCENES[idx];
           if (hudIndex.current) hudIndex.current.textContent = scene.id;
           if (hudName.current) hudName.current.textContent = scene.name;
         }
@@ -136,137 +131,36 @@ export function Hero() {
         if (hudCoord.current) hudCoord.current.textContent = `Φ ${(p * 360).toFixed(1).padStart(5, "0")}° · Δ ${(1 - p).toFixed(3)}`;
       };
 
-      // Scroll position mirrors the story (kept a few px inside the pin at the end).
-      const len = () => st.end - st.start;
-      const yFor = (p: number) => st.start + Math.min(p * len(), len() - 6);
-      const setScroll = (y: number) => {
+      const hold = (p: number) => {
+        const y = st.start + p * (st.end - st.start);
         const lenis = getLenis();
         if (lenis) lenis.scrollTo(y, { immediate: true, force: true });
         else window.scrollTo(0, y);
       };
-      const inHero = () => {
-        const y = st.scroll();
-        return y >= st.start - 2 && y <= st.end - 4;
-      };
-      const engaged = () => !busy && performance.now() >= heroState.bypassUntil && inHero();
 
-      const goTo = (next: number) => {
-        busy = true;
-        tween?.kill();
-        tween = gsap.to(state, {
-          p: STOPS[next],
-          duration: STEP_S * Math.min(1.6, Math.max(0.75, Math.abs(next - idx))),
-          ease: "power2.inOut",
-          onUpdate: () => {
-            render(state.p);
-            setScroll(yFor(state.p));
-          },
-          onComplete: () => {
-            idx = next;
-            busy = false;
-            tween = null;
-          },
-        });
-      };
-
-      const exitDown = () => {
-        busy = true;
-        const lenis = getLenis();
-        const y = st.end + window.innerHeight * 0.85;
-        const done = () => {
-          busy = false;
-        };
-        if (lenis) lenis.scrollTo(y, { duration: 1.2, easing: (t: number) => 1 - Math.pow(1 - t, 3), force: true, onComplete: done });
-        else {
-          window.scrollTo({ top: y, behavior: "smooth" });
-          window.setTimeout(done, 1000);
-        }
-      };
-
-      const step = (dir: 1 | -1) => {
-        const next = idx + dir;
-        if (next < 0) return;
-        if (next >= STOPS.length) return exitDown();
-        goTo(next);
-      };
-
-      /** True when this wheel event is the start of a new gesture, not inertia from the last. */
-      const freshWheel = (e: WheelEvent) => {
-        const now = performance.now();
-        const mag = Math.abs(e.deltaY);
-        const fresh = now - lastWheelAt > 180 || (mag > 14 && mag > lastWheelMag * 1.8);
-        lastWheelAt = now;
-        lastWheelMag = mag;
-        return fresh;
-      };
-
-      const onWheel = (e: WheelEvent) => {
-        if (performance.now() < heroState.bypassUntil || !inHero()) {
-          lastWheelAt = performance.now();
-          return;
-        }
-        // Inside the story: we own the scroll.
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        const fresh = freshWheel(e);
-        if (busy || !fresh || Math.abs(e.deltaY) < 3) return;
-        step(e.deltaY > 0 ? 1 : -1);
-      };
-      const onTouchStart = (e: TouchEvent) => {
-        touchY = e.touches[0]?.clientY ?? null;
-        touchFired = false;
-      };
-      const onTouchMove = (e: TouchEvent) => {
-        if (touchY === null || performance.now() < heroState.bypassUntil || !inHero()) return;
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        const dy = touchY - (e.touches[0]?.clientY ?? touchY);
-        if (touchFired || busy || Math.abs(dy) < 28) return;
-        touchFired = true;
-        step(dy > 0 ? 1 : -1);
-      };
-      const onKey = (e: KeyboardEvent) => {
-        if (!engaged()) return;
-        const t = e.target as HTMLElement | null;
-        if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT|BUTTON|A)$/.test(t.tagName))) return;
-        const down = ["ArrowDown", "PageDown", " "].includes(e.key) && !e.shiftKey;
-        const up = ["ArrowUp", "PageUp"].includes(e.key) || (e.key === " " && e.shiftKey);
-        if (!down && !up) return;
-        e.preventDefault();
-        step(down ? 1 : -1);
-      };
-      window.addEventListener("wheel", onWheel, { passive: false, capture: true });
-      window.addEventListener("touchstart", onTouchStart, { passive: true, capture: true });
-      window.addEventListener("touchmove", onTouchMove, { passive: false, capture: true });
-      window.addEventListener("keydown", onKey, { capture: true });
-
-      // Keep things consistent with jumps we didn't make (anchors, scrollbar,
-      // coming back up from the page below).
-      let wasIn = inHero();
       const tick = () => {
-        if (busy) return;
         const now = performance.now();
-        const isIn = inHero();
-        if (now < heroState.bypassUntil) {
-          state.p = st.progress;
-          render(state.p);
-          idx = STOPS.reduce((best, v, i) => (Math.abs(v - state.p) < Math.abs(STOPS[best] - state.p) ? i : best), 0);
-        } else if (isIn && !wasIn) {
-          // Re-entered from below: land on the last chapter and stop the momentum.
-          idx = STOPS.length - 1;
-          state.p = 1;
-          render(1);
-          setScroll(yFor(1));
-        } else if (isIn && Math.abs(st.scroll() - yFor(STOPS[idx])) > 40) {
-          // Moved by something else (scrollbar drag…): settle on the nearest chapter.
-          const p = st.progress;
-          const near = STOPS.reduce((best, v, i) => (Math.abs(v - p) < Math.abs(STOPS[best] - p) ? i : best), 0);
-          state.p = p;
-          goTo(near);
+        const dt = Math.min(0.05, (now - last) / 1000);
+        last = now;
+        const target = st.progress;
+        const y = st.scroll();
+        const vh = window.innerHeight;
+        // Intentional jumps, or already well outside the hero: no pacing.
+        if (now < heroState.bypassUntil || y > st.end + vh * 0.5 || y < st.start - vh * 0.5) {
+          shown = target;
+        } else {
+          const diff = target - shown;
+          if (Math.abs(diff) > 0.00005) {
+            const cap = MAX_RATE * dt * (diff < 0 ? 1.6 : 1); // rewinding may be a little quicker
+            shown += Math.max(-cap, Math.min(cap, diff * (1 - Math.exp(-FOLLOW * dt))));
+            // Hold the page while the story catches up.
+            const lead = target - shown;
+            if (lead > LEAD) hold(shown + LEAD);
+            else if (lead < -LEAD) hold(shown - LEAD);
+          } else shown = target;
         }
-        wasIn = isIn;
+        render(shown);
       };
-
       tl.to({}, { duration: 1 }, 0); // normalise timeline length to 1
       tl.to(q("[data-p1]"), { autoAlpha: 0, y: -60, duration: 0.06 }, 0.13);
       tl.to(q("[data-scroll-cue]"), { autoAlpha: 0, duration: 0.04 }, 0.04);
@@ -279,18 +173,12 @@ export function Hero() {
       tl.fromTo(q("[data-p5]"), { autoAlpha: 0, scale: 0.96 }, { autoAlpha: 1, scale: 1, duration: 0.06 }, 0.9);
       tl.fromTo(q("[data-iris]"), { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.05 }, 0.95);
 
-      // Initial state: honour scroll restoration, then take over.
-      heroState.bypassUntil = performance.now() + 700;
-      state.p = st.progress;
-      render(state.p);
+      // Don't fight scroll restoration / layout settling on load.
+      heroState.bypassUntil = performance.now() + 900;
+      render(shown);
       gsap.ticker.add(tick);
       return () => {
         gsap.ticker.remove(tick);
-        tween?.kill();
-        window.removeEventListener("wheel", onWheel, { capture: true });
-        window.removeEventListener("touchstart", onTouchStart, { capture: true });
-        window.removeEventListener("touchmove", onTouchMove, { capture: true });
-        window.removeEventListener("keydown", onKey, { capture: true });
         st.kill();
       };
     },
@@ -380,7 +268,7 @@ export function Hero() {
         </div>
       </div>
       <div data-scroll-cue className="absolute bottom-6 left-1/2 flex -translate-x-1/2 flex-col items-center gap-3">
-        <span className="label text-muted">Swipe to begin</span>
+        <span className="label text-muted">Scroll to connect</span>
         <span className="relative block h-10 w-px overflow-hidden bg-white/10">
           <span className="absolute inset-x-0 top-0 h-1/2 animate-[scroll-cue_1.8s_var(--ease-orbit)_infinite] bg-warm" />
         </span>
