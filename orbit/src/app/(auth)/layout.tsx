@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { OrbitSymbol, Wordmark } from "@/components/brand/logo";
 import { AmbientShader } from "@/components/fx/ambient-shader";
+import { LanguageSwitcher } from "@/components/legal/language-switcher";
+import { getT } from "@/lib/i18n/server";
 
-export default function AuthLayout({ children }: { children: React.ReactNode }) {
+export default async function AuthLayout({ children }: { children: React.ReactNode }) {
+  const t = await getT();
   return (
     <div data-auth-shell className="dark grid min-h-[100svh] bg-void text-warm lg:grid-cols-[1.05fr_1fr]">
       <aside className="noise relative hidden overflow-hidden border-r border-white/10 bg-obsidian lg:block">
@@ -28,9 +31,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           </Link>
           <div>
             <p className="display text-[clamp(2.5rem,4.5vw,4.5rem)]">
-              Human curiosity.
-              <span className="serif-accent block font-normal text-silver">Artificial intelligence.</span>
-              <span className="block">Infinite understanding.</span>
+              {t.auth.aside1}
+              <span className="serif-accent block font-normal text-silver">{t.auth.aside2}</span>
+              <span className="block">{t.auth.aside3}</span>
             </p>
             <p className="label mt-8 text-muted">ORBIT · Your mind. In motion.</p>
           </div>
@@ -43,6 +46,13 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           </Link>
         </div>
         <div className="mx-auto flex w-full max-w-[400px] flex-1 flex-col justify-center py-10">{children}</div>
+        <footer className="mx-auto flex w-full max-w-[400px] flex-wrap items-center justify-between gap-3 text-[12px] text-muted">
+          <LanguageSwitcher />
+          <span className="flex gap-4">
+            <Link href="/terms" className="hover:text-warm">{t.common.legal.terms}</Link>
+            <Link href="/privacy" className="hover:text-warm">{t.common.legal.privacy}</Link>
+          </span>
+        </footer>
       </main>
     </div>
   );

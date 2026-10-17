@@ -11,6 +11,7 @@ import { useToast } from "@/components/ui/toast";
 import type { PublicCredential } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { connectKey } from "@/server/actions/providers";
+import { useI18n } from "@/lib/i18n/client";
 
 export interface AIState {
   connected: boolean;
@@ -216,13 +217,14 @@ export function QuickConnect({ autoFocus, onConnected, className }: { autoFocus?
 /** Sidebar status: green dot when connected, a call to action when not. */
 export function AIStatusButton({ collapsed }: { collapsed: boolean }) {
   const ctx = useConnectAI();
+  const { t } = useI18n();
   const router = useRouter();
   if (!ctx) return null;
   const { state, open } = ctx;
   return (
     <button
       onClick={() => (state.connected ? router.push("/app/settings/providers") : open())}
-      title={state.connected ? `${state.label} · ${state.model ?? ""}` : "Connect your AI"}
+      title={state.connected ? `${state.label} · ${state.model ?? ""}` : t.app.connectAI}
       className={cn(
         "relative flex h-9 w-full items-center gap-2.5 overflow-hidden rounded-lg px-2.5 text-left text-[12.5px] transition-colors",
         state.connected ? "text-ink-2 hover:bg-soft hover:text-ink" : "border border-dashed border-line-strong text-ink hover:bg-soft",
@@ -234,7 +236,7 @@ export function AIStatusButton({ collapsed }: { collapsed: boolean }) {
         <span className={cn("relative h-2 w-2 rounded-full", state.connected ? "bg-ok" : "bg-accent")} />
       </span>
       {collapsed ? null : (
-        <span className="min-w-0 flex-1 truncate">{state.connected ? `${state.label}${state.model ? ` · ${state.model}` : ""}` : "Connect your AI"}</span>
+        <span className="min-w-0 flex-1 truncate">{state.connected ? `${state.label}${state.model ? ` · ${state.model}` : ""}` : t.app.connectAI}</span>
       )}
     </button>
   );

@@ -10,14 +10,16 @@ import { cn } from "@/lib/utils";
 import { Magnetic } from "./magnetic";
 import { scrollToHash } from "./smooth-scroll";
 import { playWarp } from "@/components/fx/warp";
+import { LanguageSwitcher } from "@/components/legal/language-switcher";
+import { useI18n } from "@/lib/i18n/client";
 
 const LINKS = [
-  { href: "/#platform", label: "Platform" },
-  { href: "/features", label: "Features" },
-  { href: "/how-it-works", label: "How It Works" },
-  { href: "/models", label: "AI Models" },
-  { href: "/about", label: "About" },
-];
+  { href: "/#platform", key: "platform" },
+  { href: "/features", key: "features" },
+  { href: "/how-it-works", key: "how" },
+  { href: "/models", key: "models" },
+  { href: "/about", key: "about" },
+] as const;
 
 export function MarketingNav() {
   const [signedIn, setSignedIn] = useState(false);
@@ -25,6 +27,7 @@ export function MarketingNav() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useI18n();
 
   useEffect(() => {
     let cancelled = false;
@@ -81,7 +84,7 @@ export function MarketingNav() {
                   aria-current={active ? "page" : undefined}
                   className="group relative py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-silver transition-colors hover:text-warm"
                 >
-                  {l.label}
+                  {t.nav[l.key]}
                   <span
                     className={cn(
                       "absolute inset-x-0 -bottom-0.5 h-px origin-left bg-warm transition-transform duration-500 ease-[var(--ease-orbit)]",
@@ -97,7 +100,7 @@ export function MarketingNav() {
         <div className="hidden items-center gap-5 lg:flex">
           {signedIn ? null : (
             <Link href="/sign-in" className="font-mono text-[11px] uppercase tracking-[0.16em] text-silver transition-colors hover:text-warm">
-              Sign In
+              {t.nav.signIn}
             </Link>
           )}
           <Magnetic>
@@ -105,7 +108,7 @@ export function MarketingNav() {
               href={signedIn ? "/app" : "/sign-up"}
               className="inline-flex h-10 items-center rounded-full bg-warm px-5 font-mono text-[11px] uppercase tracking-[0.18em] text-void transition-transform duration-300 hover:scale-[1.04]"
             >
-              {signedIn ? "Open ORBIT" : "Enter ORBIT"}
+              {signedIn ? t.nav.open : t.nav.enter}
             </Link>
           </Magnetic>
         </div>
@@ -142,7 +145,7 @@ export function MarketingNav() {
                   <motion.li key={l.href} initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06 * i + 0.05, duration: 0.7, ease: [0.16, 1, 0.3, 1] }}>
                     <Link href={l.href} onClick={go(l.href)} className="flex items-baseline gap-4 py-2">
                       <span className="font-mono text-[11px] text-muted">{String(i + 1).padStart(2, "0")}</span>
-                      <span className="display text-[2.6rem]">{l.label}</span>
+                      <span className="display text-[2.6rem]">{t.nav[l.key]}</span>
                     </Link>
                   </motion.li>
                 ))}
@@ -150,12 +153,13 @@ export function MarketingNav() {
               <div className="mt-auto flex flex-col gap-3">
                 {signedIn ? null : (
                   <button onClick={() => { setOpen(false); playWarp({ label: "Approaching ORBIT", mode: "approach" }); router.push("/sign-in"); }} className="h-12 rounded-full border border-white/15 font-mono text-[11px] uppercase tracking-[0.2em]">
-                    Sign In
+                    {t.nav.signIn}
                   </button>
                 )}
                 <button onClick={() => { setOpen(false); playWarp(signedIn ? { label: "Entering your universe", mode: "enter" } : { label: "Preparing your universe", mode: "approach" }); router.push(signedIn ? "/app" : "/sign-up"); }} className="h-12 rounded-full bg-warm font-mono text-[11px] uppercase tracking-[0.2em] text-void">
-                  {signedIn ? "Open ORBIT" : "Enter ORBIT"}
+                  {signedIn ? t.nav.open : t.nav.enter}
                 </button>
+                <LanguageSwitcher className="mt-2 self-center" />
               </div>
             </RD.Content>
           </RD.Portal>

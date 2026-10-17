@@ -7,6 +7,7 @@ import { armWarpArrival, finishWarp, playWarp } from "@/components/fx/warp";
 import { Check, Copy } from "lucide-react";
 import { resetAction, signInAction, signUpAction, updatePasswordAction, type AuthState } from "@/server/actions/auth";
 import { OrbitPulse } from "@/components/brand/logo";
+import { useI18n } from "@/lib/i18n/client";
 
 const inputCls =
   "h-12 w-full rounded-xl border border-white/12 bg-white/[0.03] px-4 text-[15px] text-warm placeholder:text-muted/70 transition-colors focus:border-warm focus:outline-none";
@@ -53,13 +54,14 @@ function Feedback({ state }: { state: AuthState }) {
 }
 
 function RecoveryCard({ code, onContinue, cta }: { code: string; onContinue: () => void; cta: string }) {
+  const { t } = useI18n();
   const [copied, setCopied] = useState(false);
   return (
     <div className="animate-rise">
-      <p className="label text-muted">Account recovery</p>
-      <h1 className="display mt-4 text-[2.6rem]">Save this code.</h1>
+      <p className="label text-muted">{t.auth.recoveryLabel}</p>
+      <h1 className="display mt-4 text-[2.6rem]">{t.auth.recoveryTitle}</h1>
       <p className="mt-4 text-[14px] leading-relaxed text-silver">
-        You&apos;re running ORBIT locally, so there&apos;s no email reset. This one-time recovery code lets you reset your password. It won&apos;t be shown again.
+        {t.auth.recoveryText}
       </p>
       <div className="mt-6 flex items-center justify-between gap-4 rounded-xl border border-white/15 bg-white/[0.04] px-4 py-4">
         <code className="font-mono text-[15px] tracking-[0.12em] text-warm">{code}</code>
@@ -68,7 +70,7 @@ function RecoveryCard({ code, onContinue, cta }: { code: string; onContinue: () 
           onClick={() => {
             navigator.clipboard.writeText(code).then(() => setCopied(true)).catch(() => undefined);
           }}
-          aria-label="Copy recovery code"
+          aria-label={t.auth.recoveryCopy}
           className="rounded-lg p-2 text-silver hover:bg-white/10"
         >
           {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
@@ -82,6 +84,8 @@ function RecoveryCard({ code, onContinue, cta }: { code: string; onContinue: () 
 }
 
 export function SignInForm({ next, initialError }: { next?: string; initialError?: string }) {
+  const { t } = useI18n();
+  const a = t.auth;
   const [state, action, pending] = useActionState<AuthState, FormData>(signInAction, initialError ? { error: initialError } : {});
   useEffect(() => {
     if (state.error || state.message) finishWarp();
@@ -89,20 +93,20 @@ export function SignInForm({ next, initialError }: { next?: string; initialError
   return (
     <form action={action} onSubmit={armWarpArrival} className="flex flex-col gap-5">
       <div>
-        <p className="label text-muted">Welcome back</p>
-        <h1 className="display mt-4 text-[2.8rem]">Sign in.</h1>
+        <p className="label text-muted">{a.welcome}</p>
+        <h1 className="display mt-4 text-[2.8rem]">{a.signInTitle}</h1>
       </div>
       <Feedback state={state} />
       <input type="hidden" name="next" value={next ?? "/app"} />
-      <AuthInput id="email" name="email" type="email" label="Email" autoComplete="email" required />
-      <AuthInput id="password" name="password" type="password" label="Password" autoComplete="current-password" required />
-      <Submit pending={pending}>Enter ORBIT</Submit>
+      <AuthInput id="email" name="email" type="email" label={a.email} autoComplete="email" required />
+      <AuthInput id="password" name="password" type="password" label={a.password} autoComplete="current-password" required />
+      <Submit pending={pending}>{a.enter}</Submit>
       <div className="flex justify-between text-[13px] text-muted">
         <Link href="/reset" className="hover:text-warm">
-          Forgot password?
+          {a.forgot}
         </Link>
         <Link href="/sign-up" className="hover:text-warm">
-          Create account →
+          {a.createLink}
         </Link>
       </div>
     </form>
@@ -110,6 +114,9 @@ export function SignInForm({ next, initialError }: { next?: string; initialError
 }
 
 export function SignUpForm() {
+  const { t } = useI18n();
+  const a = t.auth;
+  const L = t.common.legal;
   const router = useRouter();
   const [state, action, pending] = useActionState<AuthState, FormData>(signUpAction, {});
   useEffect(() => {
@@ -123,24 +130,50 @@ export function SignUpForm() {
           playWarp({ label: "Entering your universe" });
           router.push("/app");
         }}
-        cta="I've saved it — continue"
+        cta={a.recoveryCta}
       />
     );
   return (
     <form action={action} onSubmit={armWarpArrival} className="flex flex-col gap-5">
       <div>
-        <p className="label text-muted">Begin</p>
-        <h1 className="display mt-4 text-[2.8rem]">Start your orbit.</h1>
+        <p className="label text-muted">{a.begin}</p>
+        <h1 className="display mt-4 text-[2.8rem]">{a.signUpTitle}</h1>
       </div>
       <Feedback state={state} />
-      <AuthInput id="name" name="name" label="Name" autoComplete="name" placeholder="How should ORBIT greet you?" />
-      <AuthInput id="email" name="email" type="email" label="Email" autoComplete="email" required />
-      <AuthInput id="password" name="password" type="password" label="Password" autoComplete="new-password" minLength={8} required />
-      <Submit pending={pending}>Create account</Submit>
+      <AuthInput id="name" name="name" label={a.name} autoComplete="name" placeholder={a.namePh} />
+      <AuthInput id="email" name="email" type="email" label={a.email} autoComplete="email" required />
+      <AuthInput id="password" name="password" type="password" label={a.password} autoComplete="new-password" minLength={8} required />
+      <fieldset className="rounded-xl border border-white/12 px-4 pb-3 pt-1">
+        <legend className="label px-1 text-muted">{a.ageLegend}</legend>
+        <label className="flex cursor-pointer items-start gap-3 py-1.5 text-[13.5px] leading-snug text-silver">
+          <input type="radio" name="age" value="16plus" required className="mt-0.5 h-4 w-4 shrink-0 accent-[#f5f3ef]" />
+          <span>{a.age16}</span>
+        </label>
+        <label className="flex cursor-pointer items-start gap-3 py-1.5 text-[13.5px] leading-snug text-silver">
+          <input type="radio" name="age" value="13to15" className="mt-0.5 h-4 w-4 shrink-0 accent-[#f5f3ef]" />
+          <span>{a.age13}</span>
+        </label>
+        <p className="pt-1 text-[11.5px] text-muted">{a.under13}</p>
+      </fieldset>
+      <label className="flex cursor-pointer items-start gap-3 text-[13px] leading-snug text-silver">
+        <input type="checkbox" name="terms" value="yes" required className="mt-0.5 h-4 w-4 shrink-0 accent-[#f5f3ef]" />
+        <span>
+          {a.agree1}{" "}
+          <Link href="/terms" target="_blank" className="text-warm underline underline-offset-4">
+            {L.terms}
+          </Link>{" "}
+          {a.and}{" "}
+          <Link href="/privacy" target="_blank" className="text-warm underline underline-offset-4">
+            {L.privacy}
+          </Link>
+          {a.agree2}
+        </span>
+      </label>
+      <Submit pending={pending}>{a.create}</Submit>
       <p className="text-[13px] text-muted">
-        Already have an account?{" "}
+        {a.have}{" "}
         <Link href="/sign-in" className="text-warm hover:underline">
-          Sign in
+          {a.signInLink}
         </Link>
       </p>
     </form>
@@ -148,44 +181,47 @@ export function SignUpForm() {
 }
 
 export function ResetForm({ mode }: { mode: "local" | "supabase" }) {
+  const { t } = useI18n();
+  const a = t.auth;
   const router = useRouter();
   const [state, action, pending] = useActionState<AuthState, FormData>(resetAction, {});
-  if (state.recovery) return <RecoveryCard code={state.recovery} onContinue={() => router.push("/sign-in")} cta="Continue to sign in" />;
+  if (state.recovery) return <RecoveryCard code={state.recovery} onContinue={() => router.push("/sign-in")} cta={a.toSignIn} />;
   return (
     <form action={action} className="flex flex-col gap-5">
       <div>
-        <p className="label text-muted">Recovery</p>
-        <h1 className="display mt-4 text-[2.8rem]">Reset password.</h1>
+        <p className="label text-muted">{a.resetLabel}</p>
+        <h1 className="display mt-4 text-[2.8rem]">{a.resetTitle}</h1>
         <p className="mt-3 text-[14px] leading-relaxed text-silver">
           {mode === "local"
-            ? "Enter the recovery code you saved when you created your account."
-            : "We'll email you a secure link to choose a new password."}
+            ? a.resetLocal
+            : a.resetEmail}
         </p>
       </div>
       <Feedback state={state} />
-      <AuthInput id="email" name="email" type="email" label="Email" autoComplete="email" required />
+      <AuthInput id="email" name="email" type="email" label={a.email} autoComplete="email" required />
       {mode === "local" ? (
         <>
-          <AuthInput id="code" name="code" label="Recovery code" placeholder="XXXXX-XXXXX-XXXXX-XXXXX" autoComplete="off" required />
-          <AuthInput id="password" name="password" type="password" label="New password" autoComplete="new-password" minLength={8} required />
+          <AuthInput id="code" name="code" label={a.code} placeholder="XXXXX-XXXXX-XXXXX-XXXXX" autoComplete="off" required />
+          <AuthInput id="password" name="password" type="password" label={a.newPassword} autoComplete="new-password" minLength={8} required />
         </>
       ) : null}
-      <Submit pending={pending}>{mode === "local" ? "Reset password" : "Send reset link"}</Submit>
+      <Submit pending={pending}>{mode === "local" ? a.resetBtn : a.sendLink}</Submit>
       <Link href="/sign-in" className="text-[13px] text-muted hover:text-warm">
-        ← Back to sign in
+        {a.back}
       </Link>
     </form>
   );
 }
 
 export function UpdatePasswordForm() {
+  const { t } = useI18n();
   const [state, action, pending] = useActionState<AuthState, FormData>(updatePasswordAction, {});
   return (
     <form action={action} className="flex flex-col gap-5">
-      <h1 className="display text-[2.8rem]">New password.</h1>
+      <h1 className="display text-[2.8rem]">{t.auth.updateTitle}</h1>
       <Feedback state={state} />
-      <AuthInput id="password" name="password" type="password" label="New password" autoComplete="new-password" minLength={8} required />
-      <Submit pending={pending}>Save and continue</Submit>
+      <AuthInput id="password" name="password" type="password" label={t.auth.newPassword} autoComplete="new-password" minLength={8} required />
+      <Submit pending={pending}>{t.auth.save}</Submit>
     </form>
   );
 }

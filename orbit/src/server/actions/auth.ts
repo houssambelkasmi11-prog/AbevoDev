@@ -16,6 +16,8 @@ import { getLocalSessionId, getUser } from "@/lib/auth/session";
 import { env } from "@/lib/env";
 import { supabaseServer } from "@/lib/supabase/server";
 import { errorMessage } from "@/lib/utils";
+import { LEGAL } from "@/lib/legal/config";
+import { getT } from "@/lib/i18n/server";
 
 export interface AuthState {
   error?: string;
@@ -49,12 +51,24 @@ export async function signUpAction(_: AuthState, form: FormData): Promise<AuthSt
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the form." };
   const { email: e, password: p, name } = parsed.data;
 
+  // Legal: age gate (13+, parental permission for 13–15) and explicit acceptance of the Terms/Privacy Policy.
+  const t = await getT();
+  const age = form.get("age");
+  if (age !== "16plus" && age !== "13to15") return { error: t.auth.errAge };
+  if (form.get("terms") !== "yes") return { error: t.auth.errTerms };
+  const consent = {
+    age_band: age,
+    parental_permission: age === "13to15",
+    terms_version: LEGAL.version,
+    terms_accepted_at: new Date().toISOString(),
+  };
+
   if (env.backend === "supabase") {
     const sb = await supabaseServer();
     const { data, error } = await sb.auth.signUp({
       email: e,
       password: p,
-      options: { data: { name: name ?? null }, emailRedirectTo: `${env.siteUrl}/auth/callback?next=/app` },
+      options: { data: { name: name ?? null, ...consent }, emailRedirectTo: `${env.siteUrl}/auth/callback?next=/app` },
     });
     if (error) return { error: error.message };
     if (!data.session) return { message: "Check your inbox to confirm your email, then sign in." };
@@ -62,7 +76,7 @@ export async function signUpAction(_: AuthState, form: FormData): Promise<AuthSt
   }
 
   try {
-    const { userId, recovery } = await localSignUp(e, p, name ?? null);
+    const { userId, recovery } = await localSignUp(e, p, name ?? null, consent);
     const ua = (await headers()).get("user-agent");
     await setSessionCookie(await createSession(userId, ua));
     return { recovery };

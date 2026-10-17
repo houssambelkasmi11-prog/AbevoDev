@@ -240,9 +240,18 @@ export async function deleteAccount(confirm: string): Promise<ActionResult> {
         for (const r of rows) await repo.remove(t, r.id);
       }
       const sb = await supabaseServer();
-      // Deleting the auth user itself requires the service role; the
-      // `delete_own_account` SQL function (see migration) handles it safely.
-      await sb.rpc("delete_own_account");
+      // Deleting the auth user itself needs elevated rights: prefer the
+      // `delete_own_account` SQL function (see migration); fall back to the
+      // admin API with the server-only service role key.
+      const { error: rpcError } = await sb.rpc("delete_own_account");
+      if (rpcError) {
+        const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY;
+        if (!serviceKey || !env.supabaseUrl) throw new Error("Your data was deleted, but the login itself couldn't be removed. Contact us and we'll finish it within 30 days.");
+        const { createClient } = await import("@supabase/supabase-js");
+        const admin = createClient(env.supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+        const { error } = await admin.auth.admin.deleteUser(user.id);
+        if (error) throw new Error(`Your data was deleted, but the login couldn't be removed (${error.message}). Contact us and we'll finish it.`);
+      }
       await sb.auth.signOut();
     }
     return null;

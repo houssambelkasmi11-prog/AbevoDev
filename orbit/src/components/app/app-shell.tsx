@@ -23,6 +23,7 @@ import { createWorkspace, switchWorkspace } from "@/server/actions/workspace";
 import { CommandPalette } from "./command-palette";
 import { AIStatusButton, ConnectAIProvider, type AIState } from "./connect-ai";
 import { WarpArrival, playWarp } from "@/components/fx/warp";
+import { useI18n } from "@/lib/i18n/client";
 import { CreateMenu } from "./create-menu";
 import { isActive, MOBILE_TABS, NAV } from "./nav-items";
 import { ThemeProvider, useTheme } from "./theme";
@@ -51,6 +52,7 @@ export function AppShell(props: ShellProps) {
 
 function ShellInner({ user, workspace, workspaces, children }: ShellProps) {
   const pathname = usePathname();
+  const { t } = useI18n();
   const [collapsed, setCollapsed] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [drawer, setDrawer] = useState(false);
@@ -101,7 +103,7 @@ function ShellInner({ user, workspace, workspaces, children }: ShellProps) {
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-          {collapsed ? null : <span>Collapse</span>}
+          {collapsed ? null : <span>{t.app.collapse}</span>}
         </button>
       </aside>
 
@@ -136,7 +138,7 @@ function ShellInner({ user, workspace, workspaces, children }: ShellProps) {
                     className={cn("flex h-16 flex-col items-center justify-center gap-1 text-[10px]", isActive(pathname, n.href) ? "text-ink" : "text-ink-3")}
                   >
                     <n.icon className="h-5 w-5" />
-                    <span>{n.label.split(" ")[0]}</span>
+                    <span className="max-w-[68px] truncate">{(t.app.nav[n.href] ?? n.label).split(" ")[0]}</span>
                   </Link>
                 </li>
               ))}
@@ -187,6 +189,7 @@ function SidebarContent({
 }) {
   const pathname = usePathname();
   const { resolved, toggle } = useTheme();
+  const { t } = useI18n();
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -221,7 +224,7 @@ function SidebarContent({
                 <Link
                   href={n.href}
                   aria-current={active ? "page" : undefined}
-                  title={collapsed ? n.label : undefined}
+                  title={collapsed ? t.app.nav[n.href] ?? n.label : undefined}
                   className={cn(
                     "group relative flex h-9 items-center gap-3 rounded-lg px-2.5 text-[13.5px] transition-colors",
                     active ? "text-ink" : "text-ink-2 hover:bg-soft/70 hover:text-ink",
@@ -238,7 +241,7 @@ function SidebarContent({
                     </motion.span>
                   ) : null}
                   <n.icon className="relative h-[17px] w-[17px] shrink-0 transition-transform duration-300 ease-[var(--ease-orbit)] group-hover:scale-110" strokeWidth={1.7} />
-                  {collapsed ? null : <span className="relative truncate transition-transform duration-300 ease-[var(--ease-orbit)] group-hover:translate-x-0.5">{n.label}</span>}
+                  {collapsed ? null : <span className="relative truncate transition-transform duration-300 ease-[var(--ease-orbit)] group-hover:translate-x-0.5">{t.app.nav[n.href] ?? n.label}</span>}
                 </Link>
               </li>
             );
@@ -269,12 +272,12 @@ function SidebarContent({
               <DM.Content side="top" align="start" sideOffset={8} className="z-[90] min-w-[200px] rounded-xl border border-line bg-surface p-1.5 text-ink shadow-lift">
                 <DM.Item asChild>
                   <Link href="/app/settings" className="flex items-center rounded-lg px-2.5 py-2 text-[13px] outline-none data-[highlighted]:bg-soft">
-                    Settings
+                    {t.app.settings}
                   </Link>
                 </DM.Item>
                 <DM.Item asChild>
                   <Link href="/" className="flex items-center rounded-lg px-2.5 py-2 text-[13px] outline-none data-[highlighted]:bg-soft">
-                    Public site
+                    {t.app.publicSite}
                   </Link>
                 </DM.Item>
                 <DM.Separator className="my-1 h-px bg-line" />
@@ -284,7 +287,7 @@ function SidebarContent({
                   }}
                   className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] outline-none data-[highlighted]:bg-soft"
                 >
-                  <LogOut className="h-3.5 w-3.5" /> Sign out
+                  <LogOut className="h-3.5 w-3.5" /> {t.app.signOut}
                 </DM.Item>
               </DM.Content>
             </DM.Portal>

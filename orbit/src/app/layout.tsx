@@ -1,6 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Instrument_Serif, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { CookieNotice } from "@/components/legal/cookie-notice";
+import { I18nProvider } from "@/lib/i18n/client";
+import { getDict } from "@/lib/i18n/dict";
+import { RTL } from "@/lib/i18n/locales";
+import { getLocale } from "@/lib/i18n/server";
 
 const body = Geist({ subsets: ["latin"], variable: "--font-body-face", display: "swap" });
 const serif = Instrument_Serif({
@@ -50,10 +55,12 @@ const themeScript = `(function(){try{var d=document.documentElement;var p=locati
 const DISPLAY_FONT_CSS = "https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@500,700,800&display=swap";
 const fontScript = `(function(){var l=document.createElement('link');l.rel='stylesheet';l.href=${JSON.stringify(DISPLAY_FONT_CSS)};document.head.appendChild(l)})();`;
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const locale = await getLocale();
   return (
     <html
-      lang="en"
+      lang={locale}
+      dir={RTL.has(locale) ? "rtl" : "ltr"}
       suppressHydrationWarning
       className={`${body.variable} ${serif.variable} ${mono.variable}`}
     >
@@ -75,7 +82,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         >
           Skip to content
         </a>
-        {children}
+        <I18nProvider locale={locale} dict={getDict(locale)}>
+          {children}
+          <CookieNotice />
+        </I18nProvider>
       </body>
     </html>
   );

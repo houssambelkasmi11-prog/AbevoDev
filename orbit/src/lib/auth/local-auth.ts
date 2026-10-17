@@ -17,6 +17,8 @@ interface LocalUser {
   recovery_hash: string;
   recovery_salt: string;
   created_at: string;
+  /** Age band + Terms/Privacy acceptance recorded at sign-up. */
+  consent?: Record<string, unknown>;
 }
 
 export interface LocalSession {
@@ -107,7 +109,7 @@ function recoveryCode(): string {
   return raw.match(/.{1,5}/g)?.join("-") ?? raw;
 }
 
-export async function localSignUp(email: string, password: string, name: string | null): Promise<{ userId: string; recovery: string }> {
+export async function localSignUp(email: string, password: string, name: string | null, consent?: Record<string, unknown>): Promise<{ userId: string; recovery: string }> {
   return withLock(async () => {
     const data = await load();
     const e = normalizeEmail(email);
@@ -124,6 +126,7 @@ export async function localSignUp(email: string, password: string, name: string 
       recovery_hash: rc.hash,
       recovery_salt: rc.salt,
       created_at: new Date().toISOString(),
+      consent,
     };
     data.users.push(user);
     await save();

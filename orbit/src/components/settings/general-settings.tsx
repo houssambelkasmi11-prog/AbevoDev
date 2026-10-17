@@ -1,5 +1,9 @@
 "use client";
 
+import Link from "next/link";
+import { LanguageSwitcher } from "@/components/legal/language-switcher";
+import { useI18n } from "@/lib/i18n/client";
+
 import { Monitor, Moon, Sparkles, Sun, Trash2, Wind, ZapOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
@@ -44,6 +48,7 @@ export function GeneralSettings({
   backend: "local" | "supabase";
   personas: { id: string; name: string }[];
 }) {
+  const { t } = useI18n();
   const toast = useToast();
   const router = useRouter();
   const { pref, setPref } = useTheme();
@@ -306,7 +311,24 @@ export function GeneralSettings({
         </Button>
       </Panel>
 
+      <Panel title={t.common.language}>
+        <p className="text-[13.5px] leading-relaxed text-ink-2">{t.app.languageHint}</p>
+        <LanguageSwitcher tone="app" className="mt-4" />
+      </Panel>
+
       <Panel title="Data & privacy" className="border-danger/30">
+        <p className="text-[13.5px] font-medium">{t.app.exportTitle}</p>
+        <p className="mt-1 text-[13.5px] leading-relaxed text-ink-2">{t.app.exportText}</p>
+        <a href="/api/me/export" download className="mt-3 inline-flex h-9 items-center rounded-lg border border-line px-3 text-[13px] font-medium hover:bg-soft">
+          {t.app.exportTitle}
+        </a>
+        <p className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-[12.5px] text-ink-3">
+          <span>{t.app.legalLinks}:</span>
+          <Link href="/terms" className="underline-offset-4 hover:text-ink hover:underline">{t.common.legal.terms}</Link>
+          <Link href="/privacy" className="underline-offset-4 hover:text-ink hover:underline">{t.common.legal.privacy}</Link>
+          <Link href="/cookies" className="underline-offset-4 hover:text-ink hover:underline">{t.common.legal.cookies}</Link>
+        </p>
+        <hr className="my-5 border-line" />
         <p className="text-[13.5px] leading-relaxed text-ink-2">
           Permanently delete your account, every note, source, conversation, flashcard, study session and stored API key. This cannot be undone.
         </p>

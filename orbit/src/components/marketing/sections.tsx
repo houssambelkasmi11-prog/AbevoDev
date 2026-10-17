@@ -13,6 +13,8 @@ import { usePrefersReducedMotion } from "@/lib/client/hooks";
 import { cn } from "@/lib/utils";
 import { HomeworkPreview, LibraryPreview, ModelsPreview, NotesPreview, PersonasPreview, UniversePreview } from "./previews";
 import { Magnetic } from "./magnetic";
+import { LanguageSwitcher } from "@/components/legal/language-switcher";
+import { useI18n } from "@/lib/i18n/client";
 
 /* ───────────────────────── Shared bits ───────────────────────── */
 
@@ -60,8 +62,8 @@ function OrbitDiagram({ className }: { className?: string }) {
 export function IntroSection() {
   const root = useRef<HTMLElement>(null);
   const reduced = usePrefersReducedMotion();
-  const copy =
-    "Your notes, your lessons, your questions, your ideas. Connected by intelligence that helps you understand more, remember longer, and create better.";
+  const { t } = useI18n();
+  const copy = t.intro.copy;
 
   useGSAP(
     () => {
@@ -85,10 +87,10 @@ export function IntroSection() {
     <section ref={root} id="platform" aria-labelledby="intro-h" className="relative bg-void px-5 py-28 text-warm md:px-10 md:py-40">
       <div className="mx-auto grid max-w-[1400px] gap-16 lg:grid-cols-[1.2fr_1fr] lg:items-center">
         <div>
-          <SectionLabel index="A">The introduction</SectionLabel>
+          <SectionLabel index="A">{t.intro.label}</SectionLabel>
           <h2 id="intro-h" data-reveal className="display mt-10 text-[clamp(3rem,8vw,7.5rem)]">
-            A second mind.
-            <span data-reveal style={{ "--reveal-delay": 140 } as React.CSSProperties} className="serif-accent block font-normal text-silver">Built for yours.</span>
+            {t.intro.a}
+            <span data-reveal style={{ "--reveal-delay": 140 } as React.CSSProperties} className="serif-accent block font-normal text-silver">{t.intro.b}</span>
           </h2>
           <p className="mt-12 max-w-2xl text-[clamp(1.25rem,2.2vw,1.85rem)] leading-[1.35] tracking-tight">
             {copy.split(" ").map((w, i) => (
@@ -160,6 +162,7 @@ const FEATURES = [
 ] as const;
 
 export function FeatureStage() {
+  const { t } = useI18n();
   const root = useRef<HTMLElement>(null);
   const [active, setActive] = useState(0);
   const reduced = usePrefersReducedMotion();
@@ -187,10 +190,10 @@ export function FeatureStage() {
     <section ref={root} id="system" aria-labelledby="system-h" className="relative bg-void px-5 pb-24 text-warm md:px-10 md:pb-40">
       <div className="mx-auto max-w-[1400px]">
         <div className="border-t border-white/10 pt-16">
-          <SectionLabel index="B">Everything in one universe</SectionLabel>
+          <SectionLabel index="B">{t.system.label}</SectionLabel>
           <h2 id="system-h" data-reveal className="display mt-8 max-w-4xl text-[clamp(2.6rem,6vw,5.5rem)]">
-            Six instruments.
-            <span data-reveal style={{ "--reveal-delay": 140 } as React.CSSProperties} className="serif-accent block font-normal text-silver">One system of thought.</span>
+            {t.system.a}
+            <span data-reveal style={{ "--reveal-delay": 140 } as React.CSSProperties} className="serif-accent block font-normal text-silver">{t.system.b}</span>
           </h2>
         </div>
 
@@ -198,20 +201,21 @@ export function FeatureStage() {
           <ol className="flex flex-col">
             {FEATURES.map((f, i) => {
               const P = f.Preview;
+              const ft = t.system.features[i] ?? f;
               return (
                 <li key={f.key} data-feature className="flex min-h-[46vh] flex-col justify-center border-t border-white/10 py-12 lg:min-h-[70vh]">
                   <div className="flex items-baseline gap-5">
                     <span className={cn("font-mono text-[11px] transition-colors duration-500", active === i ? "text-warm" : "text-muted")}>
                       {String(i + 1).padStart(2, "0")} / 06
                     </span>
-                    <span className="label text-muted">{f.title}</span>
+                    <span className="label text-muted">{ft.title}</span>
                   </div>
                   <h3 className={cn("display mt-6 text-[clamp(2rem,4.2vw,3.75rem)] transition-opacity duration-700", active === i || reduced ? "opacity-100" : "opacity-35")}>
-                    {f.headline}
+                    {ft.headline}
                   </h3>
-                  <p className="mt-5 max-w-md text-[15.5px] leading-relaxed text-silver">{f.copy}</p>
+                  <p className="mt-5 max-w-md text-[15.5px] leading-relaxed text-silver">{ft.copy}</p>
                   <Link href="/sign-up" className="group mt-7 inline-flex w-fit items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-warm">
-                    {f.cta}
+                    {ft.cta}
                     <ArrowUpRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                   </Link>
                   <div className="mt-10 lg:hidden">
@@ -238,7 +242,7 @@ export function FeatureStage() {
                   </motion.div>
                 </AnimatePresence>
                 <div className="mt-6 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.18em] text-muted">
-                  <span>{FEATURES[active].title}</span>
+                  <span>{(t.system.features[active] ?? FEATURES[active]).title}</span>
                   <span className="flex gap-1.5">
                     {FEATURES.map((f, i) => (
                       <span key={f.key} className={cn("h-px w-6 transition-colors duration-500", i === active ? "bg-warm" : "bg-white/15")} />
@@ -263,6 +267,7 @@ const STAGES = [
 ];
 
 export function HowItWorks({ standalone = false }: { standalone?: boolean }) {
+  const { t } = useI18n();
   const root = useRef<HTMLElement>(null);
   const [focus, setFocus] = useState(0);
   const reduced = usePrefersReducedMotion();
@@ -283,10 +288,10 @@ export function HowItWorks({ standalone = false }: { standalone?: boolean }) {
     <section ref={root} id="how" aria-labelledby="how-h" className={cn("relative bg-void px-5 text-warm md:px-10", standalone ? "pb-32 pt-40" : "py-28 md:py-40")}>
       <div className="mx-auto max-w-[1400px]">
         <div className={cn(!standalone && "border-t border-white/10 pt-16")}>
-          <SectionLabel index="C">How ORBIT works</SectionLabel>
+          <SectionLabel index="C">{t.how.label}</SectionLabel>
           <h2 id="how-h" data-reveal className="display mt-8 text-[clamp(2.6rem,6vw,5.5rem)]">
-            Capture. Connect.
-            <span data-reveal style={{ "--reveal-delay": 140 } as React.CSSProperties} className="serif-accent block font-normal text-silver">Expand.</span>
+            {t.how.a}
+            <span data-reveal style={{ "--reveal-delay": 140 } as React.CSSProperties} className="serif-accent block font-normal text-silver">{t.how.b}</span>
           </h2>
         </div>
 
@@ -296,7 +301,9 @@ export function HowItWorks({ standalone = false }: { standalone?: boolean }) {
             <path data-flow-line d="M 40 8 L 960 8" stroke="#f5f3ef" strokeWidth="1" fill="none" strokeDasharray="1000" strokeDashoffset={reduced ? 0 : 1000} />
           </svg>
           <ol className="grid gap-6 md:grid-cols-3">
-            {STAGES.map((s, i) => (
+            {STAGES.map((s0, i) => {
+              const s = { ...s0, ...(t.how.stages[i] ?? {}) };
+              return (
               <li key={s.n}>
                 <button
                   onMouseEnter={() => setFocus(i)}
@@ -324,7 +331,8 @@ export function HowItWorks({ standalone = false }: { standalone?: boolean }) {
                   </span>
                 </button>
               </li>
-            ))}
+              );
+            })}
           </ol>
         </div>
       </div>
@@ -337,6 +345,8 @@ export function HowItWorks({ standalone = false }: { standalone?: boolean }) {
 
 
 export function ChooseIntelligence({ standalone = false }: { standalone?: boolean }) {
+  const { t } = useI18n();
+  const c = t.choose;
   const [persona, setPersona] = useState(0);
   const [provider, setProvider] = useState(1);
   const p = BUILTIN_PERSONAS[persona];
@@ -346,20 +356,19 @@ export function ChooseIntelligence({ standalone = false }: { standalone?: boolea
     <section id="models" aria-labelledby="models-h" className={cn("relative bg-void px-5 text-warm md:px-10", standalone ? "pb-32 pt-40" : "py-28 md:py-40")}>
       <div className="mx-auto max-w-[1400px]">
         <div className={cn(!standalone && "border-t border-white/10 pt-16")}>
-          <SectionLabel index="D">Choose your intelligence</SectionLabel>
+          <SectionLabel index="D">{c.label}</SectionLabel>
           <h2 id="models-h" data-reveal className="display mt-8 max-w-5xl text-[clamp(2.6rem,6vw,5.5rem)]">
-            Two dials.
-            <span data-reveal style={{ "--reveal-delay": 140 } as React.CSSProperties} className="serif-accent block font-normal text-silver">Set independently.</span>
+            {c.a}
+            <span data-reveal style={{ "--reveal-delay": 140 } as React.CSSProperties} className="serif-accent block font-normal text-silver">{c.b}</span>
           </h2>
           <p className="mt-8 max-w-2xl text-[16px] leading-relaxed text-silver">
-            The <em className="serif-accent text-warm">personality</em> decides how you are taught. The <em className="serif-accent text-warm">model</em> decides which
-            intelligence does the thinking. Mix them freely — ATLAS on one provider, AXIOM on another.
+            {c.body1} <em className="serif-accent text-warm">{c.personality}</em> {c.body2} <em className="serif-accent text-warm">{c.model}</em> {c.body3}
           </p>
         </div>
 
         <div className="mt-16 grid gap-6 lg:grid-cols-[1fr_1fr_1.1fr]">
           <fieldset className="rounded-2xl border border-white/10 p-5">
-            <legend className="label px-2 text-muted">Dial 01 — Personality</legend>
+            <legend className="label px-2 text-muted">{c.dial1}</legend>
             <div className="mt-2 grid grid-cols-2 gap-2" role="radiogroup" aria-label="Personality">
               {BUILTIN_PERSONAS.map((x, i) => (
                 <button
@@ -375,7 +384,7 @@ export function ChooseIntelligence({ standalone = false }: { standalone?: boolea
                   <OrbitGlyph variant={x.glyph} className="h-7 w-7" />
                   <span>
                     <span className="block font-display text-[13px] font-bold tracking-[0.14em]">{x.name}</span>
-                    <span className={cn("block text-[11px]", persona === i ? "text-void/60" : "text-muted")}>{x.role}</span>
+                    <span className={cn("block text-[11px]", persona === i ? "text-void/60" : "text-muted")}>{c.roles[x.name] ?? x.role}</span>
                   </span>
                 </button>
               ))}
@@ -383,7 +392,7 @@ export function ChooseIntelligence({ standalone = false }: { standalone?: boolea
           </fieldset>
 
           <fieldset className="rounded-2xl border border-white/10 p-5">
-            <legend className="label px-2 text-muted">Dial 02 — Model provider</legend>
+            <legend className="label px-2 text-muted">{c.dial2}</legend>
             <div className="mt-2 flex flex-col gap-2" role="radiogroup" aria-label="Model provider">
               {PROVIDER_FACTS.map((x, i) => (
                 <button
@@ -397,7 +406,7 @@ export function ChooseIntelligence({ standalone = false }: { standalone?: boolea
                   )}
                 >
                   <span className="font-display text-[15px] font-bold">{x.name}</span>
-                  <span className={cn("font-mono text-[9.5px] uppercase tracking-[0.16em]", provider === i ? "text-void/60" : "text-muted")}>Your key</span>
+                  <span className={cn("font-mono text-[9.5px] uppercase tracking-[0.16em]", provider === i ? "text-void/60" : "text-muted")}>{c.yourKey}</span>
                 </button>
               ))}
             </div>
@@ -406,28 +415,28 @@ export function ChooseIntelligence({ standalone = false }: { standalone?: boolea
           <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.04] to-transparent p-6">
             <AnimatePresence mode="wait">
               <motion.div key={`${persona}-${provider}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.35 }}>
-                <p className="label text-muted">Resulting assistant</p>
+                <p className="label text-muted">{c.resulting}</p>
                 <p className="display mt-4 text-[2.4rem]">
                   {p.name} <span className="serif-accent font-normal text-silver">×</span> {pr.name}
                 </p>
                 <p className="mt-4 text-[14px] leading-relaxed text-silver">
-                  <span className="text-warm">Teaching style:</span> {p.teaching_style}
+                  <span className="text-warm">{c.teaching}</span> {p.teaching_style}
                 </p>
                 <dl className="mt-6 grid gap-3 border-t border-white/10 pt-5 text-[13px]">
                   <div className="grid grid-cols-[110px_1fr] gap-3">
-                    <dt className="label pt-0.5 text-muted">Streaming</dt>
-                    <dd>Supported</dd>
+                    <dt className="label pt-0.5 text-muted">{c.streaming}</dt>
+                    <dd>{c.supported}</dd>
                   </div>
                   <div className="grid grid-cols-[110px_1fr] gap-3">
-                    <dt className="label pt-0.5 text-muted">Vision</dt>
+                    <dt className="label pt-0.5 text-muted">{c.vision}</dt>
                     <dd>{pr.vision}</dd>
                   </div>
                   <div className="grid grid-cols-[110px_1fr] gap-3">
-                    <dt className="label pt-0.5 text-muted">Embeddings</dt>
+                    <dt className="label pt-0.5 text-muted">{c.embeddings}</dt>
                     <dd>{pr.embeddings}</dd>
                   </div>
                   <div className="grid grid-cols-[110px_1fr] gap-3">
-                    <dt className="label pt-0.5 text-muted">Note</dt>
+                    <dt className="label pt-0.5 text-muted">{c.note}</dt>
                     <dd className="text-silver">{pr.notes}</dd>
                   </div>
                 </dl>
@@ -436,7 +445,7 @@ export function ChooseIntelligence({ standalone = false }: { standalone?: boolea
           </div>
         </div>
         <p className="mt-6 font-mono text-[10.5px] uppercase tracking-[0.14em] text-muted">
-          Providers differ in features, limits and pricing. ORBIT never assumes identical capabilities.
+          {c.footnote}
         </p>
       </div>
     </section>
@@ -446,6 +455,7 @@ export function ChooseIntelligence({ standalone = false }: { standalone?: boolea
 /* ───────────────────── E — Final CTA ───────────────────── */
 
 export function FinalCTA() {
+  const { t } = useI18n();
   const root = useRef<HTMLElement>(null);
   const reduced = usePrefersReducedMotion();
 
@@ -482,8 +492,8 @@ export function FinalCTA() {
         <div className="relative z-10 text-center">
           <OrbitSymbol className="mx-auto h-10 w-10 text-warm" strokeWidth={1.2} />
           <h2 id="cta-h" data-reveal className="display mx-auto mt-10 max-w-5xl text-[clamp(2.8rem,8vw,8rem)]">
-            The universe is
-            <span data-reveal style={{ "--reveal-delay": 140 } as React.CSSProperties} className="serif-accent block font-normal text-silver">yours to understand.</span>
+            {t.cta.a}
+            <span data-reveal style={{ "--reveal-delay": 140 } as React.CSSProperties} className="serif-accent block font-normal text-silver">{t.cta.b}</span>
           </h2>
           <div className="mt-12 flex justify-center">
             <Magnetic>
@@ -491,7 +501,7 @@ export function FinalCTA() {
                 href="/sign-up"
                 className="group inline-flex h-14 items-center gap-3 rounded-full bg-warm px-9 font-mono text-[12px] uppercase tracking-[0.22em] text-void transition-transform duration-300 hover:scale-[1.04]"
               >
-                Start your orbit <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                {t.cta.button} <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1 rtl:-scale-x-100" />
               </Link>
             </Magnetic>
           </div>
@@ -504,11 +514,14 @@ export function FinalCTA() {
 /* ───────────────────── Footer ───────────────────── */
 
 export function Footer() {
+  const { t } = useI18n();
+  const f = t.footer;
+  const L = t.common.legal;
   const cols: { h: string; l: [string, string][] }[] = [
-    { h: "Platform", l: [["Notes", "/features"], ["Lessons & Sources", "/features"], ["AI Studio", "/features"], ["Homework Studio", "/features"]] },
-    { h: "System", l: [["How it works", "/how-it-works"], ["AI models", "/models"], ["Knowledge Orbit", "/features"], ["Practice Lab", "/features"]] },
-    { h: "Account", l: [["Sign in", "/sign-in"], ["Create account", "/sign-up"], ["Workspace", "/app"]] },
-    { h: "ORBIT", l: [["About", "/about"], ["Privacy", "/about#privacy"], ["Security", "/about#security"]] },
+    { h: f.platform, l: [[f.notes, "/features"], [f.lessons, "/features"], [f.studio, "/features"], [f.homework, "/features"]] },
+    { h: f.system, l: [[f.how, "/how-it-works"], [f.models, "/models"], [f.orbit, "/features"], [f.practice, "/features"]] },
+    { h: f.account, l: [[f.signIn, "/sign-in"], [f.create, "/sign-up"], [f.workspace, "/app"], [f.about, "/about"]] },
+    { h: f.legal, l: [[L.terms, "/terms"], [L.privacy, "/privacy"], [L.cookies, "/cookies"], [L.imprint, "/legal"]] },
   ];
   return (
     <footer className="border-t border-white/10 bg-void px-5 pb-10 pt-20 text-warm md:px-10">
@@ -519,7 +532,8 @@ export function Footer() {
               <OrbitSymbol className="h-6 w-6" />
               <span className="font-display text-[15px] font-bold tracking-[0.32em]">ORBIT</span>
             </div>
-            <p className="mt-5 max-w-xs text-[13.5px] leading-relaxed text-muted">Human curiosity. Artificial intelligence. Infinite understanding.</p>
+            <p className="mt-5 max-w-xs text-[13.5px] leading-relaxed text-muted">{f.tagline}</p>
+            <LanguageSwitcher className="mt-6" />
           </div>
           {cols.map((c) => (
             <nav key={c.h} aria-label={c.h}>
@@ -538,7 +552,7 @@ export function Footer() {
         </div>
         <div className="mt-20 flex flex-col justify-between gap-4 border-t border-white/10 pt-6 font-mono text-[10px] uppercase tracking-[0.18em] text-muted md:flex-row">
           <span>© {new Date().getFullYear()} ORBIT</span>
-          <span>Your mind. In motion.</span>
+          <span>{f.motto}</span>
           <span>52.37° N · 4.89° E</span>
         </div>
       </div>

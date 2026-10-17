@@ -8,6 +8,7 @@ import { gsap, ScrollTrigger, useGSAP } from "@/lib/client/gsap";
 import { supportsWebGL, useMediaQuery, usePrefersReducedMotion } from "@/lib/client/hooks";
 import { CLUSTERS, heroState, SCENES, SYNAPSE_LABELS } from "./hero-state";
 import { getLenis, scrollToHash } from "../smooth-scroll";
+import { useI18n } from "@/lib/i18n/client";
 import { ConnectionPoster } from "./poster";
 import type { Quality } from "./connection-scene";
 
@@ -47,6 +48,8 @@ function Headline({ a, b, size = "xl", as: Tag = "h2" }: { a: string; b: string;
 }
 
 export function Hero() {
+  const { t } = useI18n();
+  const h = t.hero;
   const reduced = usePrefersReducedMotion();
   const small = useMediaQuery("(max-width: 820px)");
   const [webgl, setWebgl] = useState<boolean | null>(null);
@@ -209,7 +212,7 @@ export function Hero() {
   return (
     <section
       ref={root}
-      aria-label="The Connection — an introduction to ORBIT"
+      aria-label={h.aria}
       className="relative h-[100svh] w-full overflow-hidden bg-void text-warm"
     >
       {/* 3D stage */}
@@ -262,13 +265,13 @@ export function Hero() {
 
       {/* Scene 01 — Discovery */}
       <div data-p1 className="absolute inset-x-0 bottom-[14vh] px-5 md:bottom-[12vh] md:px-10">
-        <Headline as="h1" a="Your mind." b="In motion." />
+        <Headline as="h1" a={h.a} b={h.b} />
         <div data-p1-sub className="mt-6 flex max-w-xl flex-col gap-1 md:mt-8">
-          <p className="text-[15px] leading-relaxed text-silver md:text-[17px]">Meet the intelligence that learns alongside you.</p>
+          <p className="text-[15px] leading-relaxed text-silver md:text-[17px]">{h.sub}</p>
         </div>
       </div>
       <div data-scroll-cue className="absolute bottom-6 left-1/2 flex -translate-x-1/2 flex-col items-center gap-3">
-        <span className="label text-muted">Scroll to connect</span>
+        <span className="label text-muted">{h.cue}</span>
         <span className="relative block h-10 w-px overflow-hidden bg-white/10">
           <span className="absolute inset-x-0 top-0 h-1/2 animate-[scroll-cue_1.8s_var(--ease-orbit)_infinite] bg-warm" />
         </span>
@@ -276,39 +279,39 @@ export function Hero() {
 
       {/* Scene 02 — Approach */}
       <div data-p2 className="invisible absolute inset-x-0 top-[16vh] px-5 text-center opacity-0 md:px-10">
-        <Headline a="Two intelligences." b="One infinite possibility." size="lg" />
+        <Headline a={h.s2a} b={h.s2b} size="lg" />
       </div>
 
       {/* Scene 03 — Synapse */}
       <div data-p3 className="invisible absolute inset-x-0 bottom-[10vh] px-5 text-center opacity-0">
-        <p className="label text-muted">03 / SYNAPSE</p>
+        <p className="label text-muted">{h.s3label}</p>
         <p className="mx-auto mt-3 max-w-md text-[15px] leading-relaxed text-silver">
-          Every point is a piece of knowledge. Every line, an understanding you haven&apos;t had yet.
+          {h.s3text}
         </p>
       </div>
 
       {/* Scene 04 — Universe */}
       <div data-p4 className="invisible absolute inset-x-0 bottom-[12vh] px-5 opacity-0 md:px-10">
-        <Headline a="Everything you learn." b="Beautifully connected." size="lg" />
+        <Headline a={h.s4a} b={h.s4b} size="lg" />
         <p className="mt-6 max-w-lg text-[15px] leading-relaxed text-silver">
-          Every note, lesson, source and conversation becomes part of a larger understanding.
+          {h.s4text}
         </p>
       </div>
 
       {/* Scene 05 — Enter ORBIT */}
       <div data-iris className="pointer-events-none invisible absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(7,8,9,0.2)_0%,rgba(7,8,9,0.92)_60%)] opacity-0" />
       <div data-p5 className="invisible absolute inset-0 flex flex-col items-center justify-center px-5 text-center opacity-0">
-        <p className="label text-muted">05 / ENTER ORBIT</p>
+        <p className="label text-muted">{h.s5label}</p>
         <h2 className="display mt-6 text-[clamp(2.6rem,8vw,7.5rem)] text-warm">
-          Enter your
-          <span className="serif-accent block font-normal text-silver">learning universe.</span>
+          {h.s5a}
+          <span className="serif-accent block font-normal text-silver">{h.s5b}</span>
         </h2>
         <div className="mt-10 flex flex-col gap-3 sm:flex-row">
           <Link
             href="/sign-up"
             className="group inline-flex h-12 items-center justify-center gap-3 rounded-full bg-warm px-7 font-mono text-[11px] uppercase tracking-[0.2em] text-void transition-transform duration-300 hover:scale-[1.03]"
           >
-            Enter ORBIT <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            {h.enter} <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1 rtl:-scale-x-100" />
           </Link>
           <a
             href="#system"
@@ -317,7 +320,7 @@ export function Hero() {
             }}
             className="inline-flex h-12 items-center justify-center rounded-full border border-white/15 px-7 font-mono text-[11px] uppercase tracking-[0.2em] text-warm transition-colors hover:border-white/40"
           >
-            Explore the system
+            {h.explore}
           </a>
         </div>
       </div>
@@ -344,23 +347,25 @@ function ProjectedLabel({ register, text, dot, index }: { register: (el: HTMLEle
 
 /** Reduced-motion version: no pinning, no camera choreography — same story. */
 function ReducedHero() {
+  const { t } = useI18n();
+  const h = t.hero;
   return (
-    <section aria-label="The Connection — an introduction to ORBIT" className="relative bg-void text-warm">
+    <section aria-label={h.aria} className="relative bg-void text-warm">
       <div className="relative h-[100svh] min-h-[560px] overflow-hidden">
         <ConnectionPoster className="absolute inset-0" />
         <div className="absolute inset-x-0 bottom-[12vh] px-5 md:px-10">
           <p className="label mb-6 text-muted">01 / HUMAN INTELLIGENCE · 02 / ARTIFICIAL INTELLIGENCE</p>
           <h1 className="display text-[clamp(3.2rem,11vw,10.5rem)]">
-            Your mind.
-            <span className="serif-accent block font-normal text-silver">In motion.</span>
+            {h.a}
+            <span className="serif-accent block font-normal text-silver">{h.b}</span>
           </h1>
-          <p className="mt-6 text-[17px] text-silver">Meet the intelligence that learns alongside you.</p>
+          <p className="mt-6 text-[17px] text-silver">{h.sub}</p>
         </div>
       </div>
       <div className="mx-auto grid max-w-6xl gap-16 px-5 py-24 md:px-10">
         {[
-          ["Two intelligences.", "One infinite possibility."],
-          ["Everything you learn.", "Beautifully connected."],
+          [h.s2a, h.s2b],
+          [h.s4a, h.s4b],
         ].map(([a, b]) => (
           <h2 key={a} className="display text-[clamp(2.4rem,6vw,5.5rem)]">
             {a}
@@ -369,7 +374,7 @@ function ReducedHero() {
         ))}
         <div>
           <Link href="/sign-up" className="inline-flex h-12 items-center gap-3 rounded-full bg-warm px-7 font-mono text-[11px] uppercase tracking-[0.2em] text-void">
-            Enter ORBIT <ArrowRight className="h-4 w-4" />
+            {h.enter} <ArrowRight className="h-4 w-4 rtl:-scale-x-100" />
           </Link>
         </div>
       </div>

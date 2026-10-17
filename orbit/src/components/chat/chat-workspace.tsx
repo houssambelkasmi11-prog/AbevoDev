@@ -520,7 +520,7 @@ export function ChatWorkspace({
               )}
             </form>
             <p className="mt-1.5 flex justify-between px-1 font-mono text-[9.5px] text-ink-3">
-              <span>{grounded ? `Grounded · ${scopeSummary(scope, scopeOptions)}` : "General knowledge"} · Enter to send</span>
+              <span>{grounded ? `Grounded · ${scopeSummary(scope, scopeOptions)}` : "General knowledge"} · Enter to send · AI can make mistakes — check important facts</span>
               <span>{estimateCost(input.length + messages.reduce((n, m) => n + m.content.length, 0), activeModel) ?? ""}</span>
             </p>
             <input ref={fileRef} type="file" multiple hidden accept=".pdf,.docx,.md,.txt,.vtt,.srt,image/*" onChange={(e) => { void uploadFiles([...(e.target.files ?? [])]); e.target.value = ""; }} />

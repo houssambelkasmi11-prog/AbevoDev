@@ -856,6 +856,9 @@ html.reveal-ready [data-reveal]:not([data-revealed]) {
 /* Quiet, theme-aware scrollbars */
 html { scrollbar-width: thin; scrollbar-color: rgba(140, 144, 150, 0.4) transparent; }
 
+@keyframes fx-cookie-in { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+.fx-cookie { animation: fx-cookie-in 600ms var(--ease-orbit) both; }
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *,
