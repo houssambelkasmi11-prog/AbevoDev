@@ -393,7 +393,7 @@ export function ChatWorkspace({
                     {m.role === "user" ? (
                       <div className="flex justify-end">
                         <div className="max-w-[85%] rounded-2xl rounded-tr-md bg-ink px-4 py-3 text-[14.5px] leading-relaxed text-canvas">
-                          <p className="whitespace-pre-wrap">{m.content}</p>
+                          <p translate="no" className="whitespace-pre-wrap">{m.content}</p>
                         </div>
                       </div>
                     ) : (

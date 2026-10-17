@@ -1,7 +1,6 @@
 "use client";
 
 import { Globe } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { setLocaleAction } from "@/lib/i18n/actions";
 import { useI18n } from "@/lib/i18n/client";
@@ -11,7 +10,6 @@ import { cn } from "@/lib/utils";
 /** Native select (accessible, works everywhere); the choice is stored in a cookie. */
 export function LanguageSwitcher({ className, tone = "dark" }: { className?: string; tone?: "dark" | "app" }) {
   const { locale, t } = useI18n();
-  const router = useRouter();
   const [pending, start] = useTransition();
 
   return (
@@ -31,7 +29,9 @@ export function LanguageSwitcher({ className, tone = "dark" }: { className?: str
           const next = e.target.value;
           start(async () => {
             await setLocaleAction(next);
-            router.refresh();
+            // Full reload so every piece of text (incl. already-translated
+            // workspace UI) re-renders cleanly in the new language.
+            window.location.reload();
           });
         }}
         className="cursor-pointer appearance-none bg-transparent pe-1 outline-none [&>option]:bg-[#111214] [&>option]:text-[#f5f3ef]"

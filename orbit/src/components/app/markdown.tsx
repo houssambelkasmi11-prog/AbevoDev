@@ -31,7 +31,7 @@ export const Markdown = memo(function Markdown({ text, citations = [], className
   const byKey = new Map(citations.map((c) => [c.key, c]));
   const body = linkCitations(text.replace(NOT_IN_SOURCES, "").trimStart(), keys);
   return (
-    <div className={cn("orbit-md", className)}>
+    <div translate="no" className={cn("orbit-md", className)}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeKatex, [rehypeHighlight, { detect: true }]]}

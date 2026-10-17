@@ -1,15 +1,13 @@
 import "server-only";
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
 import { cache } from "react";
 import { getDict } from "./dict";
-import { isLocale, LOCALE_COOKIE, matchLocale, type Locale } from "./locales";
+import { DEFAULT_LOCALE, isLocale, LOCALE_COOKIE, type Locale } from "./locales";
 
-/** Visitor's language: explicit choice (cookie) → browser preference → English. */
+/** Visitor's language: English unless they explicitly picked another one (cookie). */
 export const getLocale = cache(async (): Promise<Locale> => {
-  const store = await cookies();
-  const chosen = store.get(LOCALE_COOKIE)?.value;
-  if (isLocale(chosen)) return chosen;
-  return matchLocale((await headers()).get("accept-language"));
+  const chosen = (await cookies()).get(LOCALE_COOKIE)?.value;
+  return isLocale(chosen) ? chosen : DEFAULT_LOCALE;
 });
 
 export async function getT() {
