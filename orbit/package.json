@@ -2,7 +2,7 @@
   "name": "orbit",
   "version": "0.1.0",
   "private": true,
-  "description": "ORBIT \u2014 a cinematic, AI-powered learning universe.",
+  "description": "ORBIT — a cinematic, AI-powered learning universe.",
   "scripts": {
     "setup": "node scripts/setup.mjs",
     "dev": "next dev --turbopack",
@@ -11,7 +11,11 @@
     "fast:rebuild": "node scripts/start.mjs --rebuild",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "checkpoint": "node scripts/checkpoint.mjs save",
+    "checkpoint:list": "node scripts/checkpoint.mjs list",
+    "checkpoint:restore": "node scripts/checkpoint.mjs restore",
+    "checkpoint:diff": "node scripts/checkpoint.mjs diff"
   },
   "engines": {
     "node": ">=20.9.0"

@@ -4,6 +4,7 @@ import Lenis from "lenis";
 import { useEffect } from "react";
 import { gsap, ScrollTrigger } from "@/lib/client/gsap";
 import { usePrefersReducedMotion } from "@/lib/client/hooks";
+import { bypassHeroPacing } from "./hero/hero-state";
 
 let current: Lenis | null = null;
 
@@ -15,6 +16,7 @@ export function getLenis(): Lenis | null {
 export function scrollToHash(hash: string): boolean {
   const el = document.querySelector<HTMLElement>(hash);
   if (!el) return false;
+  bypassHeroPacing();
   if (current) current.scrollTo(el, { offset: -24 });
   else el.scrollIntoView({ behavior: "smooth", block: "start" });
   // Move focus for keyboard and screen-reader users.
@@ -32,7 +34,7 @@ export function SmoothScroll({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (reduced) return;
-    const lenis = new Lenis({ duration: 1.15, smoothWheel: true, wheelMultiplier: 0.95 });
+    const lenis = new Lenis({ lerp: 0.085, smoothWheel: true, wheelMultiplier: 0.85, touchMultiplier: 1.1 });
     current = lenis;
     lenis.on("scroll", ScrollTrigger.update);
     const tick = (time: number) => lenis.raf(time * 1000);

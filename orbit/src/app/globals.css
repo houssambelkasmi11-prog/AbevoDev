@@ -792,6 +792,24 @@ html.theme-transition *::after {
   box-shadow: 0 0 8px currentColor;
 }
 
+/* ── Warp landing (public site → workspace) ─────────────────────── */
+@keyframes warp-land-main {
+  0% { opacity: 0; transform: scale(1.06); filter: blur(14px); }
+  55% { opacity: 1; }
+  100% { opacity: 1; transform: none; filter: blur(0); }
+}
+@keyframes warp-land-side {
+  0% { opacity: 0; transform: translateX(-18px); }
+  100% { opacity: 1; transform: none; }
+}
+.orbit-landing #main {
+  animation: warp-land-main 1150ms var(--ease-orbit) backwards;
+  transform-origin: 50% 40%;
+}
+.orbit-landing aside[aria-label="Workspace navigation"] {
+  animation: warp-land-side 900ms var(--ease-orbit) 260ms backwards;
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *,

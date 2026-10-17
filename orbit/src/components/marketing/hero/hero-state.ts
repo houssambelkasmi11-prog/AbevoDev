@@ -9,13 +9,21 @@ export interface HeroState {
   pointer: { x: number; y: number };
   /** DOM label elements projected from 3D anchors, keyed by id. */
   labels: Map<string, HTMLElement>;
+  /** Until this time (performance.now ms) the scroll pacing governor stands aside — used for in-page jumps. */
+  bypassUntil: number;
 }
 
 export const heroState: HeroState = {
   progress: 0,
   pointer: { x: 0, y: 0 },
   labels: new Map(),
+  bypassUntil: 0,
 };
+
+/** Let an intentional jump (nav link, "Explore the system") skip the paced intro. */
+export function bypassHeroPacing(ms = 2600) {
+  heroState.bypassUntil = (typeof performance !== "undefined" ? performance.now() : 0) + ms;
+}
 
 export const SYNAPSE_LABELS = ["IDEAS", "KNOWLEDGE", "MEMORY", "REASONING", "CREATION"] as const;
 export const CLUSTERS = ["MATHEMATICS", "PHYSICS", "LITERATURE", "HISTORY", "BIOLOGY", "COMPUTER SCIENCE"] as const;

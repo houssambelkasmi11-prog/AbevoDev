@@ -7,6 +7,7 @@ import { ArrowRight } from "lucide-react";
 import { gsap, ScrollTrigger, useGSAP } from "@/lib/client/gsap";
 import { supportsWebGL, useMediaQuery, usePrefersReducedMotion } from "@/lib/client/hooks";
 import { CLUSTERS, heroState, SCENES, SYNAPSE_LABELS } from "./hero-state";
+import { getLenis, scrollToHash } from "../smooth-scroll";
 import { ConnectionPoster } from "./poster";
 import type { Quality } from "./connection-scene";
 
@@ -96,28 +97,70 @@ export function Hero() {
       });
       gsap.from(q("[data-p1-sub], [data-hud]"), { opacity: 0, y: 14, duration: 1.2, ease: "power3.out", stagger: 0.08, delay: 0.9 });
 
-      const tl = gsap.timeline({
-        defaults: { ease: "none" },
-        scrollTrigger: {
-          trigger: root.current,
-          start: "top top",
-          end: small ? "+=380%" : "+=520%",
-          pin: true,
-          scrub: 0.7,
-          anticipatePin: 1,
-          onUpdate(self) {
-            const p = self.progress;
-            heroState.progress = p;
-            const idx = SCENES.findIndex((s) => p >= s.from && p <= s.to);
-            const scene = SCENES[Math.max(0, idx)];
-            if (hudIndex.current) hudIndex.current.textContent = scene.id;
-            if (hudName.current) hudName.current.textContent = scene.name;
-            if (hudBar.current) hudBar.current.style.transform = `scaleY(${p.toFixed(4)})`;
-            if (hudCoord.current) hudCoord.current.textContent = `Φ ${(p * 360).toFixed(1).padStart(5, "0")}° · Δ ${(1 - p).toFixed(3)}`;
-          },
-        },
+      // The story timeline is driven by a *paced* progress value rather than
+      // raw scroll: however hard you fling the wheel, each scene gets its
+      // moment. The page is held inside the pinned hero until the story has
+      // caught up (in-page jumps bypass this via heroState.bypassUntil).
+      const tl = gsap.timeline({ paused: true, defaults: { ease: "none" } });
+      const st = ScrollTrigger.create({
+        trigger: root.current,
+        start: "top top",
+        end: small ? "+=380%" : "+=520%",
+        pin: true,
+        anticipatePin: 1,
       });
 
+      const MAX_RATE = small ? 0.16 : 0.12; // story progress per second at most (≈ 6–8 s end to end)
+      const FOLLOW = 4.2; // exponential catch-up rate (1/s)
+      const LEAD = 0.03; // how far scroll may run ahead of the story before it's held
+      let shown = st.progress;
+      let lastIdx = -1;
+      let last = performance.now();
+
+      const render = (p: number) => {
+        tl.progress(p);
+        heroState.progress = p;
+        const idx = Math.max(0, SCENES.findIndex((s) => p >= s.from && p <= s.to));
+        if (idx !== lastIdx) {
+          lastIdx = idx;
+          const scene = SCENES[idx];
+          if (hudIndex.current) hudIndex.current.textContent = scene.id;
+          if (hudName.current) hudName.current.textContent = scene.name;
+        }
+        if (hudBar.current) hudBar.current.style.transform = `scaleY(${p.toFixed(4)})`;
+        if (hudCoord.current) hudCoord.current.textContent = `Φ ${(p * 360).toFixed(1).padStart(5, "0")}° · Δ ${(1 - p).toFixed(3)}`;
+      };
+
+      const hold = (p: number) => {
+        const y = st.start + p * (st.end - st.start);
+        const lenis = getLenis();
+        if (lenis) lenis.scrollTo(y, { immediate: true, force: true });
+        else window.scrollTo(0, y);
+      };
+
+      const tick = () => {
+        const now = performance.now();
+        const dt = Math.min(0.05, (now - last) / 1000);
+        last = now;
+        const target = st.progress;
+        const y = st.scroll();
+        const vh = window.innerHeight;
+        // Intentional jumps, or already well outside the hero: no pacing.
+        if (now < heroState.bypassUntil || y > st.end + vh * 0.5 || y < st.start - vh * 0.5) {
+          shown = target;
+        } else {
+          const diff = target - shown;
+          if (Math.abs(diff) > 0.00005) {
+            const cap = MAX_RATE * dt * (diff < 0 ? 1.6 : 1); // rewinding may be a little quicker
+            shown += Math.max(-cap, Math.min(cap, diff * (1 - Math.exp(-FOLLOW * dt))));
+            // Hold the page while the story catches up.
+            const lead = target - shown;
+            if (lead > LEAD) hold(shown + LEAD);
+            else if (lead < -LEAD) hold(shown - LEAD);
+          } else shown = target;
+        }
+        render(shown);
+      };
       tl.to({}, { duration: 1 }, 0); // normalise timeline length to 1
       tl.to(q("[data-p1]"), { autoAlpha: 0, y: -60, duration: 0.06 }, 0.13);
       tl.to(q("[data-scroll-cue]"), { autoAlpha: 0, duration: 0.04 }, 0.04);
@@ -129,6 +172,15 @@ export function Hero() {
       tl.to(q("[data-p4]"), { autoAlpha: 0, y: -60, duration: 0.05 }, 0.81);
       tl.fromTo(q("[data-p5]"), { autoAlpha: 0, scale: 0.96 }, { autoAlpha: 1, scale: 1, duration: 0.06 }, 0.9);
       tl.fromTo(q("[data-iris]"), { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.05 }, 0.95);
+
+      // Don't fight scroll restoration / layout settling on load.
+      heroState.bypassUntil = performance.now() + 900;
+      render(shown);
+      gsap.ticker.add(tick);
+      return () => {
+        gsap.ticker.remove(tick);
+        st.kill();
+      };
     },
     { scope: root, dependencies: [reduced, small], revertOnUpdate: true },
   );
@@ -260,6 +312,9 @@ export function Hero() {
           </Link>
           <a
             href="#system"
+            onClick={(e) => {
+              if (scrollToHash("#system")) e.preventDefault();
+            }}
             className="inline-flex h-12 items-center justify-center rounded-full border border-white/15 px-7 font-mono text-[11px] uppercase tracking-[0.2em] text-warm transition-colors hover:border-white/40"
           >
             Explore the system

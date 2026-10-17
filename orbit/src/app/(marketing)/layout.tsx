@@ -2,6 +2,7 @@ import { CursorHalo } from "@/components/marketing/cursor-halo";
 import { MarketingNav } from "@/components/marketing/nav";
 import { Footer } from "@/components/marketing/sections";
 import { SmoothScroll } from "@/components/marketing/smooth-scroll";
+import { WarpLinks } from "@/components/fx/warp";
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -11,6 +12,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
         <main id="main">{children}</main>
         <Footer />
         <CursorHalo />
+        <WarpLinks />
       </div>
     </SmoothScroll>
   );

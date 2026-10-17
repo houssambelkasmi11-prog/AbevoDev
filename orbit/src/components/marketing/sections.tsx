@@ -74,7 +74,7 @@ export function IntroSection() {
           opacity: 1,
           stagger: 0.04,
           ease: "none",
-          scrollTrigger: { trigger: root.current, start: "top 70%", end: "bottom 65%", scrub: true },
+          scrollTrigger: { trigger: root.current, start: "top 70%", end: "bottom 65%", scrub: 0.9 },
         },
       );
     },
@@ -273,7 +273,7 @@ export function HowItWorks({ standalone = false }: { standalone?: boolean }) {
       gsap.fromTo(
         "[data-flow-line]",
         { strokeDashoffset: 1000 },
-        { strokeDashoffset: 0, ease: "none", scrollTrigger: { trigger: root.current, start: "top 75%", end: "center 45%", scrub: true } },
+        { strokeDashoffset: 0, ease: "none", scrollTrigger: { trigger: root.current, start: "top 75%", end: "center 45%", scrub: 0.9 } },
       );
     },
     { scope: root, dependencies: [reduced] },
@@ -455,7 +455,7 @@ export function FinalCTA() {
       gsap.fromTo(
         "[data-iris-reveal]",
         { clipPath: "circle(8% at 50% 50%)" },
-        { clipPath: "circle(75% at 50% 50%)", ease: "none", scrollTrigger: { trigger: root.current, start: "top 85%", end: "top 15%", scrub: true } },
+        { clipPath: "circle(75% at 50% 50%)", ease: "none", scrollTrigger: { trigger: root.current, start: "top 85%", end: "top 15%", scrub: 0.9 } },
       );
     },
     { scope: root, dependencies: [reduced] },

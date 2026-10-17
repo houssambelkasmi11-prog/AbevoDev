@@ -21,6 +21,8 @@ import { cn } from "@/lib/utils";
 import { signOutAction } from "@/server/actions/auth";
 import { createWorkspace, switchWorkspace } from "@/server/actions/workspace";
 import { CommandPalette } from "./command-palette";
+import { AIStatusButton, ConnectAIProvider, type AIState } from "./connect-ai";
+import { WarpArrival, playWarp } from "@/components/fx/warp";
 import { CreateMenu } from "./create-menu";
 import { isActive, MOBILE_TABS, NAV } from "./nav-items";
 import { ThemeProvider, useTheme } from "./theme";
@@ -31,6 +33,7 @@ export interface ShellProps {
   workspace: WorkspaceRow;
   workspaces: WorkspaceRow[];
   backend: "local" | "supabase";
+  ai: AIState;
   children: React.ReactNode;
 }
 
@@ -38,7 +41,9 @@ export function AppShell(props: ShellProps) {
   return (
     <ThemeProvider initial={props.theme}>
       <ToastProvider>
-        <ShellInner {...props} />
+        <ConnectAIProvider initial={props.ai}>
+          <ShellInner {...props} />
+        </ConnectAIProvider>
       </ToastProvider>
     </ThemeProvider>
   );
@@ -79,6 +84,7 @@ function ShellInner({ user, workspace, workspaces, children }: ShellProps) {
         <RouteProgress />
       </Suspense>
       <Spotlight />
+      <WarpArrival />
 
       {/* Desktop sidebar */}
       <aside
@@ -240,6 +246,9 @@ function SidebarContent({
         </ul>
       </nav>
 
+      <div className={cn("px-3 pb-2", collapsed && "px-2")}>
+        <AIStatusButton collapsed={collapsed} />
+      </div>
       <div className={cn("border-t border-line p-3", collapsed && "flex flex-col items-center gap-2 px-2")}>
         <div className={cn("flex items-center gap-2", collapsed && "flex-col")}>
           <DM.Root>
@@ -322,6 +331,7 @@ function WorkspaceSwitcher({ workspace, workspaces, collapsed }: { workspace: Wo
                 onSelect={() =>
                   start(async () => {
                     if (w.id === workspace.id) return;
+                    playWarp({ label: w.name, mode: "switch" });
                     const r = await switchWorkspace(w.id);
                     if (!r.ok) toast.error(r.error);
                     router.refresh();

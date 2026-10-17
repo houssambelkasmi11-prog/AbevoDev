@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
+import { armWarpArrival, finishWarp, playWarp } from "@/components/fx/warp";
 import { Check, Copy } from "lucide-react";
 import { resetAction, signInAction, signUpAction, updatePasswordAction, type AuthState } from "@/server/actions/auth";
 import { OrbitPulse } from "@/components/brand/logo";
@@ -82,8 +83,11 @@ function RecoveryCard({ code, onContinue, cta }: { code: string; onContinue: () 
 
 export function SignInForm({ next, initialError }: { next?: string; initialError?: string }) {
   const [state, action, pending] = useActionState<AuthState, FormData>(signInAction, initialError ? { error: initialError } : {});
+  useEffect(() => {
+    if (state.error || state.message) finishWarp();
+  }, [state]);
   return (
-    <form action={action} className="flex flex-col gap-5">
+    <form action={action} onSubmit={armWarpArrival} className="flex flex-col gap-5">
       <div>
         <p className="label text-muted">Welcome back</p>
         <h1 className="display mt-4 text-[2.8rem]">Sign in.</h1>
@@ -108,9 +112,22 @@ export function SignInForm({ next, initialError }: { next?: string; initialError
 export function SignUpForm() {
   const router = useRouter();
   const [state, action, pending] = useActionState<AuthState, FormData>(signUpAction, {});
-  if (state.recovery) return <RecoveryCard code={state.recovery} onContinue={() => router.push("/app")} cta="I've saved it — continue" />;
+  useEffect(() => {
+    if (state.error || state.message || state.recovery) finishWarp();
+  }, [state]);
+  if (state.recovery)
+    return (
+      <RecoveryCard
+        code={state.recovery}
+        onContinue={() => {
+          playWarp({ label: "Entering your universe" });
+          router.push("/app");
+        }}
+        cta="I've saved it — continue"
+      />
+    );
   return (
-    <form action={action} className="flex flex-col gap-5">
+    <form action={action} onSubmit={armWarpArrival} className="flex flex-col gap-5">
       <div>
         <p className="label text-muted">Begin</p>
         <h1 className="display mt-4 text-[2.8rem]">Start your orbit.</h1>

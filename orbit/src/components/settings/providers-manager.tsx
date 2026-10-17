@@ -4,6 +4,7 @@ import { ExternalLink, KeyRound, RefreshCw, ShieldCheck, Trash2 } from "lucide-r
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { OrbitPulse } from "@/components/brand/logo";
+import { QuickConnect } from "@/components/app/connect-ai";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog, Dialog } from "@/components/ui/dialog";
 import { Badge, Field, Input, Select } from "@/components/ui/field";
@@ -54,14 +55,34 @@ export function ProvidersManager({
 
       {!encryptionReady ? (
         <div role="alert" className="mt-6 rounded-2xl border border-danger/40 p-5">
-          <p className="label text-danger">Secure storage not configured</p>
+          <p className="label text-danger">Secure storage unavailable</p>
           <p className="mt-1 text-[13.5px] leading-relaxed">
-            Set <code className="rounded bg-soft px-1 font-mono text-[12px]">ORBIT_ENCRYPTION_KEY</code> (run <code className="rounded bg-soft px-1 font-mono text-[12px]">npm run setup</code>) and restart. Provider connections stay disabled until keys can be stored safely.
+            This server has no secret to protect API keys with. Set <code className="rounded bg-soft px-1 font-mono text-[12px]">ORBIT_ENCRYPTION_KEY</code> (run{" "}
+            <code className="rounded bg-soft px-1 font-mono text-[12px]">npm run setup</code>) and restart.
           </p>
         </div>
-      ) : null}
+      ) : (
+        <section className="mt-8 overflow-hidden rounded-2xl border border-line bg-surface p-5 shadow-soft md:p-6">
+          <div className="grid gap-6 md:grid-cols-[1fr_1.3fr] md:items-center">
+            <div>
+              <p className="label text-ink-3">{creds.length ? "Add a key" : "Start here"}</p>
+              <h3 className="mt-1 font-display text-[20px] font-bold tracking-tight">Paste a key. That&apos;s it.</h3>
+              <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink-2">
+                ORBIT detects the provider, checks the key, picks a strong default model and — with OpenAI or Gemini — switches on semantic search. You can fine-tune everything below.
+              </p>
+            </div>
+            <QuickConnect
+              onConnected={(c) => {
+                upsert(c);
+                if (!embedId && (c.provider === "openai" || c.provider === "gemini")) setEmbedId(c.id);
+              }}
+            />
+          </div>
+        </section>
+      )}
 
-      <div className="mt-8 grid gap-4 md:grid-cols-2">
+      <p className="label mt-10 text-ink-3">Providers</p>
+      <div className="mt-3 grid gap-4 md:grid-cols-2">
         {PROVIDER_ORDER.map((kind) => {
           const meta = PROVIDER_META[kind];
           const list = creds.filter((c) => c.provider === kind);
@@ -209,7 +230,7 @@ export function ProvidersManager({
         onAdded={(c) => {
           upsert(c);
           setAdding(null);
-          toast.show(c.status === "connected" ? `${c.label} connected — choose a default model` : `Saved, but the test failed: ${c.status_detail ?? ""}`);
+          toast.show(c.status === "connected" ? `${c.label} connected · ${c.default_model ?? "ready"}` : `Saved, but the test failed: ${c.status_detail ?? ""}`);
           router.refresh();
         }}
       />
