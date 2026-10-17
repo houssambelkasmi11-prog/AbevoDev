@@ -810,6 +810,30 @@ html.theme-transition *::after {
   animation: warp-land-side 900ms var(--ease-orbit) 260ms backwards;
 }
 
+/* ── Approach landing (public site → sign-in / sign-up) ─────────── */
+@keyframes auth-land-aside {
+  0% { opacity: 0; transform: scale(1.08); filter: blur(10px); }
+  100% { opacity: 1; transform: none; filter: blur(0); }
+}
+@keyframes auth-land-rise {
+  0% { opacity: 0; transform: translateY(18px); filter: blur(4px); }
+  100% { opacity: 1; transform: none; filter: blur(0); }
+}
+.orbit-landing [data-auth-shell] #main { animation: none; }
+.orbit-landing [data-auth-shell] > aside {
+  animation: auth-land-aside 1200ms var(--ease-orbit) backwards;
+}
+.orbit-landing [data-auth-shell] form > *,
+.orbit-landing [data-auth-shell] main > div:first-child {
+  animation: auth-land-rise 800ms var(--ease-orbit) backwards;
+}
+.orbit-landing [data-auth-shell] form > *:nth-child(2) { animation-delay: 160ms; }
+.orbit-landing [data-auth-shell] form > *:nth-child(3) { animation-delay: 220ms; }
+.orbit-landing [data-auth-shell] form > *:nth-child(4) { animation-delay: 280ms; }
+.orbit-landing [data-auth-shell] form > *:nth-child(5) { animation-delay: 340ms; }
+.orbit-landing [data-auth-shell] form > *:nth-child(6) { animation-delay: 400ms; }
+.orbit-landing [data-auth-shell] form > *:nth-child(n + 7) { animation-delay: 460ms; }
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *,

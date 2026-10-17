@@ -30,6 +30,9 @@ interface Warp {
   start: number;
   phaseAt: number;
   speed: number;
+  /** Cruise speed: 2.6 = hyperspace (into the app), 0.55 = gentle approach (to sign-in). */
+  top: number;
+  kind: "enter" | "approach" | "switch";
   wantArrive: boolean;
   origin: { x: number; y: number };
   startPath: string;
@@ -61,7 +64,7 @@ function makeStars(n: number): Star[] {
   });
 }
 
-function build(origin: { x: number; y: number }, label: string, light: boolean): Warp {
+function build(origin: { x: number; y: number }, label: string, light: boolean, kind: Warp["kind"] = "enter"): Warp {
   const root = document.createElement("div");
   root.setAttribute("aria-hidden", "true");
   root.className = "orbit-warp";
@@ -104,6 +107,7 @@ function build(origin: { x: number; y: number }, label: string, light: boolean):
     root, canvas, ctx, gate, caption,
     stars: makeStars(Math.round(Math.min(900, Math.max(260, area / 2600)))),
     phase: "charge", start: performance.now(), phaseAt: performance.now(), speed: 0.1,
+    top: kind === "approach" ? 0.55 : 2.6, kind,
     wantArrive: false, origin, startPath: location.pathname, light, raf: 0, timers: [],
   };
 }
@@ -137,15 +141,15 @@ function frame(now: number) {
   let portal = 1; // 0..1 how open the entry disc is
   let reveal = 0; // 0..1 how open the exit hole is
   if (w.phase === "charge") {
-    const t = clamp01(tPhase / CHARGE_MS);
+    const t = clamp01(tPhase / (w.kind === "approach" ? 820 : CHARGE_MS));
     portal = easeOutQuart(clamp01(tPhase / 620));
-    w.speed = 0.08 + easeInCubic(t) * 2.6;
+    w.speed = 0.08 + easeInCubic(t) * w.top;
     if (t >= 1) {
       w.phase = "cruise";
       w.phaseAt = now;
     }
   } else if (w.phase === "cruise") {
-    w.speed = 2.6 + Math.sin(tPhase / 260) * 0.15;
+    w.speed = w.top + Math.sin(tPhase / 260) * 0.06 * w.top;
     if (w.wantArrive || tPhase > MAX_CRUISE_MS) {
       w.phase = "arrive";
       w.phaseAt = now;
@@ -154,7 +158,7 @@ function frame(now: number) {
     }
   } else {
     const t = clamp01(tPhase / ARRIVE_MS);
-    w.speed = 2.6 * Math.pow(1 - t, 2.2) + 0.02;
+    w.speed = w.top * Math.pow(1 - t, 2.2) + 0.02;
     reveal = easeOutQuart(clamp01((t - 0.12) / 0.88));
     if (t >= 1) return teardown();
   }
@@ -172,9 +176,12 @@ function frame(now: number) {
 
   // ── gate + caption ─────────────────────────────────────────────
   const gateIn = w.phase === "charge" ? easeOutQuart(clamp01((tPhase - 120) / 700)) : 1;
-  const gateOut = w.phase === "arrive" ? clamp01(tPhase / 420) : 0;
+  const gateOut = w.phase === "arrive" ? clamp01(tPhase / (w.kind === "approach" ? 700 : 420)) : 0;
   w.gate.style.opacity = String(gateIn * (1 - gateOut));
-  w.gate.style.transform = `translate(-50%,-50%) scale(${(0.6 + gateIn * 0.4 + gateOut * 1.4).toFixed(3)})`;
+  // Approach: you fly *through* the orbit gate; hyperspace: the gate bursts outward.
+  const through = w.kind === "approach" ? gateOut * gateOut * 5.5 : gateOut * 1.4;
+  const breathe = w.kind === "approach" && w.phase !== "arrive" ? Math.sin((now - w.start) / 700) * 0.02 : 0;
+  w.gate.style.transform = `translate(-50%,-50%) scale(${(0.6 + gateIn * 0.4 + through + breathe).toFixed(3)})`;
   w.caption.style.opacity = String(gateIn * (1 - gateOut));
   w.caption.style.transform = `translateY(${((1 - gateIn) * 8 - gateOut * 6).toFixed(1)}px)`;
 
@@ -214,7 +221,7 @@ function frame(now: number) {
     ctx.stroke();
   }
   // central bloom while at speed
-  const bloom = Math.min(1, w.speed / 2.6) * (1 - reveal);
+  const bloom = w.kind === "approach" ? 0 : Math.min(1, w.speed / 2.6) * (1 - reveal);
   if (bloom > 0.01) {
     const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.min(W, H) * 0.35);
     g.addColorStop(0, `rgba(245,243,239,${(0.11 * bloom).toFixed(3)})`);
@@ -233,7 +240,7 @@ function teardown() {
   w.timers.forEach((t) => window.clearTimeout(t));
   w.root.remove();
   warp = null;
-  window.setTimeout(() => document.documentElement.classList.remove("orbit-landing"), 120);
+  window.setTimeout(() => document.documentElement.classList.remove("orbit-landing"), 600);
 }
 
 function ensureStyles() {
@@ -259,14 +266,14 @@ if (typeof window !== "undefined") {
  * Start the jump. Finishes on its own once the URL changes (or via
  * `finishWarp()` / the `WarpArrival` mount), with a safety timeout.
  */
-export function playWarp(opts: { label?: string; mode?: "enter" | "switch"; origin?: { x: number; y: number } } = {}) {
+export function playWarp(opts: { label?: string; mode?: "enter" | "approach" | "switch"; origin?: { x: number; y: number } } = {}) {
   if (!enabled()) return;
   if (warp) return;
   ensureStyles();
   const origin =
     opts.origin ?? (Date.now() - lastPointer.at < 1500 ? { x: lastPointer.x, y: lastPointer.y } : { x: window.innerWidth / 2, y: window.innerHeight / 2 });
   const label = opts.label ?? "Entering your universe";
-  warp = build(origin, opts.mode === "switch" ? `Travelling to ${label}` : label, false);
+  warp = build(origin, opts.mode === "switch" ? `Travelling to ${label}` : label, false, opts.mode ?? "enter");
   try {
     sessionStorage.setItem(PENDING_KEY, String(Date.now()));
   } catch {
@@ -341,12 +348,14 @@ export function WarpLinks() {
       const url = new URL(a.href, location.href);
       if (url.origin !== location.origin || url.pathname === location.pathname) return;
       const p = url.pathname;
-      if (p === "/app" || p.startsWith("/app/")) playWarp({ label: "Entering your universe" });
-      else if (p === "/sign-up") playWarp({ label: "Preparing your universe" });
-      else if (p === "/sign-in") playWarp({ label: "Approaching ORBIT" });
+      if (p === "/app" || p.startsWith("/app/")) playWarp({ label: "Entering your universe", mode: "enter" });
+      else if (p === "/sign-up") playWarp({ label: "Preparing your universe", mode: "approach" });
+      else if (p === "/sign-in") playWarp({ label: "Approaching ORBIT", mode: "approach" });
     };
-    document.addEventListener("click", onClick);
-    return () => document.removeEventListener("click", onClick);
+    // Capture phase: Next's <Link> calls preventDefault() during bubbling, which
+    // would otherwise make every link look "already handled" here.
+    document.addEventListener("click", onClick, true);
+    return () => document.removeEventListener("click", onClick, true);
   }, []);
   return null;
 }

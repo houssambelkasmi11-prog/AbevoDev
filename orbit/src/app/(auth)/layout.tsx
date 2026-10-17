@@ -4,7 +4,7 @@ import { AmbientShader } from "@/components/fx/ambient-shader";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="dark grid min-h-[100svh] bg-void text-warm lg:grid-cols-[1.05fr_1fr]">
+    <div data-auth-shell className="dark grid min-h-[100svh] bg-void text-warm lg:grid-cols-[1.05fr_1fr]">
       <aside className="noise relative hidden overflow-hidden border-r border-white/10 bg-obsidian lg:block">
         <AmbientShader forceDark className="fx-ambient-local" />
         <div className="micro-grid absolute inset-0 opacity-60" />
