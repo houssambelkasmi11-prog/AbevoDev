@@ -5,7 +5,7 @@ import * as RD from "@radix-ui/react-dialog";
 import { ChevronsUpDown, LogOut, Menu, Moon, PanelLeftClose, PanelLeftOpen, Plus, Search, Sun, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { motion } from "motion/react";
+import { motion, MotionConfig } from "motion/react";
 import { Suspense, useEffect, useState, useTransition } from "react";
 import { OrbitSymbol } from "@/components/brand/logo";
 import { AmbientShader } from "@/components/fx/ambient-shader";
@@ -23,6 +23,9 @@ import { createWorkspace, switchWorkspace } from "@/server/actions/workspace";
 import { CommandPalette } from "./command-palette";
 import { AIStatusButton, ConnectAIProvider, type AIState } from "./connect-ai";
 import { WarpArrival, playWarp } from "@/components/fx/warp";
+import { useFxLevel } from "@/components/fx/fx-prefs";
+import { useSwipe } from "@/components/fx/motion-kit";
+import { NavIcon } from "./nav-motion";
 import { useI18n } from "@/lib/i18n/client";
 import { CreateMenu } from "./create-menu";
 import { isActive, MOBILE_TABS, NAV } from "./nav-items";
@@ -39,7 +42,9 @@ export interface ShellProps {
 }
 
 export function AppShell(props: ShellProps) {
+  const fx = useFxLevel();
   return (
+    <MotionConfig reducedMotion={fx === "off" ? "always" : "user"}>
     <ThemeProvider initial={props.theme}>
       <ToastProvider>
         <ConnectAIProvider initial={props.ai}>
@@ -47,6 +52,7 @@ export function AppShell(props: ShellProps) {
         </ConnectAIProvider>
       </ToastProvider>
     </ThemeProvider>
+    </MotionConfig>
   );
 }
 
@@ -57,6 +63,15 @@ function ShellInner({ user, workspace, workspaces, children }: ShellProps) {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [drawer, setDrawer] = useState(false);
   const focusMode = pathname.startsWith("/app/focus");
+  const router = useRouter();
+  // On phones, swipe sideways on a main tab to move to its neighbour in the tab bar.
+  const mobileIdx = MOBILE_TABS.indexOf(pathname);
+  const goTab = (d: number) => {
+    if (typeof window === "undefined" || window.innerWidth >= 1024 || mobileIdx < 0) return;
+    const next = MOBILE_TABS[mobileIdx + d];
+    if (next) router.push(next);
+  };
+  const tabSwipe = useSwipe({ onLeft: mobileIdx >= 0 && mobileIdx < MOBILE_TABS.length - 1 ? () => goTab(1) : undefined, onRight: mobileIdx > 0 ? () => goTab(-1) : undefined, threshold: 90 });
 
   useEffect(() => {
     try {
@@ -122,7 +137,7 @@ function ShellInner({ user, workspace, workspaces, children }: ShellProps) {
           </button>
         </header>
 
-        <main id="main" className={cn("min-w-0 flex-1", !focusMode && "pb-24 lg:pb-0")}>
+        <main id="main" {...tabSwipe} className={cn("min-w-0 flex-1", !focusMode && "pb-24 lg:pb-0")}>
           {children}
         </main>
 
@@ -135,9 +150,14 @@ function ShellInner({ user, workspace, workspaces, children }: ShellProps) {
                   <Link
                     href={n.href}
                     aria-current={isActive(pathname, n.href) ? "page" : undefined}
-                    className={cn("flex h-16 flex-col items-center justify-center gap-1 text-[10px]", isActive(pathname, n.href) ? "text-ink" : "text-ink-3")}
+                    className={cn("relative flex h-16 flex-col items-center justify-center gap-1 text-[10px] transition-colors", isActive(pathname, n.href) ? "text-ink" : "text-ink-3")}
                   >
-                    <n.icon className="h-5 w-5" />
+                    {isActive(pathname, n.href) ? (
+                      <motion.span layoutId="mobile-tab-orbit" className="absolute top-0 h-[2px] w-8 rounded-full bg-ink" transition={{ type: "spring", stiffness: 520, damping: 40, mass: 0.8 }} />
+                    ) : null}
+                    <NavIcon href={n.href} active={isActive(pathname, n.href)}>
+                      <n.icon className="h-5 w-5" />
+                    </NavIcon>
                     <span className="max-w-[68px] truncate">{(t.app.nav[n.href] ?? n.label).split(" ")[0]}</span>
                   </Link>
                 </li>
@@ -240,7 +260,9 @@ function SidebarContent({
                       <span className="absolute -left-3 top-2 h-5 w-[2px] rounded-full bg-ink" />
                     </motion.span>
                   ) : null}
-                  <n.icon className="relative h-[17px] w-[17px] shrink-0 transition-transform duration-300 ease-[var(--ease-orbit)] group-hover:scale-110" strokeWidth={1.7} />
+                  <NavIcon href={n.href} active={active} className="relative shrink-0">
+                    <n.icon className="h-[17px] w-[17px] transition-transform duration-300 ease-[var(--ease-orbit)] group-hover:scale-110" strokeWidth={1.7} />
+                  </NavIcon>
                   {collapsed ? null : <span className="relative truncate transition-transform duration-300 ease-[var(--ease-orbit)] group-hover:translate-x-0.5">{t.app.nav[n.href] ?? n.label}</span>}
                 </Link>
               </li>

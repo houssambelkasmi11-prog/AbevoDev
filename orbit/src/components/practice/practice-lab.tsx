@@ -3,7 +3,7 @@
 import { BookOpen, Layers, ListChecks, Plus, Sparkles, Timer, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useRef, useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { Markdown } from "@/components/app/markdown";
 import { NoProviderNotice } from "@/components/app/no-provider";
 import { Bars, Ring, Sparkline } from "@/components/app/viz";
@@ -27,8 +27,11 @@ import {
 } from "@/server/actions/practice";
 import { QuizRunner } from "./quiz-runner";
 import { SourcePicker, type PickItem } from "./source-picker";
+import { TabPanels, TabPill, useCalm, useTabSwipe } from "@/components/fx/motion-kit";
+import { animate, AnimatePresence, motion, useMotionValue, useTransform } from "motion/react";
 
 type Tab = "review" | "cards" | "quizzes" | "progress";
+const PRACTICE_TABS: readonly Tab[] = ["review", "cards", "quizzes", "progress"];
 
 function SourceLink({ s }: { s: SourceRef | null }) {
   if (!s) return null;
@@ -61,6 +64,7 @@ export function PracticeLab({
   const quizParam = params.get("quiz");
   const [tab, setTab] = useState<Tab>(quizParam ? "quizzes" : "review");
   const [cards, setCards] = useState(initialCards);
+  const swipe = useTabSwipe(PRACTICE_TABS, tab, setTab);
   useEffect(() => setCards(initialCards), [initialCards]);
 
   const now = Date.now();
@@ -83,11 +87,14 @@ export function PracticeLab({
       role="tab"
       aria-selected={tab === k}
       onClick={() => setTab(k)}
-      className={cn("flex h-9 items-center gap-2 rounded-lg px-3 text-[13px]", tab === k ? "bg-surface font-medium shadow-soft" : "text-ink-2 hover:text-ink")}
+      className={cn("relative isolate flex h-9 shrink-0 items-center gap-2 rounded-lg px-3 text-[13px] transition-colors", tab === k ? "font-medium text-ink" : "text-ink-2 hover:text-ink")}
     >
-      {icon}
-      {label}
-      {count !== undefined ? <span className="font-mono text-[10px] text-ink-3">{count}</span> : null}
+      {tab === k ? <TabPill id="practice-tabs" /> : null}
+      <span className="relative z-[1] flex items-center gap-2">
+        {icon}
+        {label}
+        {count !== undefined ? <span className="font-mono text-[10px] text-ink-3">{count}</span> : null}
+      </span>
     </button>
   );
 
@@ -99,12 +106,14 @@ export function PracticeLab({
         {tabBtn("quizzes", "Quizzes & exams", <ListChecks className="h-3.5 w-3.5" />, quizzes.length)}
         {tabBtn("progress", "Progress", <Timer className="h-3.5 w-3.5" />)}
       </div>
-      <div className="mt-8">
+      <TabPanels tabKey={tab} index={PRACTICE_TABS.indexOf(tab)} className="mt-8">
+        <div {...swipe}>
         {tab === "review" ? <ReviewQueue due={due} total={cards.length} onReviewed={(c) => setCards((cs) => cs.map((x) => (x.id === c.id ? c : x)))} onGoCards={() => setTab("cards")} /> : null}
         {tab === "cards" ? <CardsManager cards={cards} setCards={setCards} material={material} subjects={subjects} hasProvider={hasProvider} /> : null}
         {tab === "quizzes" ? <QuizList quizzes={quizzes} attempts={attempts} material={material} hasProvider={hasProvider} /> : null}
         {tab === "progress" ? <Progress cards={cards} quizzes={quizzes} attempts={attempts} subjects={subjects} /> : null}
-      </div>
+        </div>
+      </TabPanels>
     </div>
   );
 }
@@ -118,6 +127,7 @@ function ReviewQueue({ due, total, onReviewed, onGoCards }: { due: FlashcardRow[
   const [done, setDone] = useState(0);
   const [queue] = useState(due);
   const card = queue[index];
+  const exitDir = useRef(1);
 
   const grade = useCallback(
     async (g: 0 | 1 | 2 | 3) => {
@@ -125,6 +135,7 @@ function ReviewQueue({ due, total, onReviewed, onGoCards }: { due: FlashcardRow[
       const r = await reviewFlashcard(card.id, g);
       if (!r.ok) return toast.error(r.error);
       onReviewed(r.data);
+      exitDir.current = g <= 1 ? -1 : 1;
       setDone((d) => d + 1);
       setFlipped(false);
       setIndex((i) => i + 1);
@@ -175,9 +186,15 @@ function ReviewQueue({ due, total, onReviewed, onGoCards }: { due: FlashcardRow[
           <span className="block h-full bg-ink transition-[width]" style={{ width: `${(index / queue.length) * 100}%` }} />
         </span>
       </div>
+      <AnimatePresence mode="wait" initial={false} custom={exitDir.current}>
+      <SwipeCard key={card.id} enabled={flipped} onSwipe={(d) => void grade(d < 0 ? 0 : 2)}>
+      {(dragged) => (
       <div className="flip-scene">
         <button
-          onClick={() => setFlipped((f) => !f)}
+          onClick={() => {
+            if (dragged()) return;
+            setFlipped((f) => !f);
+          }}
           aria-label={flipped ? "Show question" : "Reveal answer"}
           data-flipped={flipped}
           className="flip-card relative block h-[340px] w-full text-left"
@@ -197,9 +214,13 @@ function ReviewQueue({ due, total, onReviewed, onGoCards }: { due: FlashcardRow[
           </div>
         </button>
       </div>
+      )}
+      </SwipeCard>
+      </AnimatePresence>
       <div className="mt-3 flex justify-center">
         <SourceLink s={card.source_ref} />
       </div>
+      {flipped ? <p className="label mt-3 text-center text-ink-3 [@media(pointer:fine)]:hidden">Swipe ← again · good →</p> : null}
       <div className={cn("mt-6 grid grid-cols-4 gap-2 transition-opacity", flipped ? "opacity-100" : "pointer-events-none opacity-30")} aria-hidden={!flipped}>
         {(["Again", "Hard", "Good", "Easy"] as const).map((l, i) => (
           <button key={l} onClick={() => void grade(i as 0 | 1 | 2 | 3)} className={cn("flex flex-col items-center rounded-xl border py-3 transition-colors", i === 2 ? "border-ink bg-ink text-canvas" : "border-line bg-surface hover:border-ink")}>
@@ -211,6 +232,58 @@ function ReviewQueue({ due, total, onReviewed, onGoCards }: { due: FlashcardRow[
         ))}
       </div>
     </div>
+  );
+}
+
+
+/**
+ * A review card you can fling: right means you knew it (Good), left means
+ * try again (Again). It leaves in that direction and the next card rises
+ * into place. Keyboard and buttons keep working exactly as before.
+ */
+function SwipeCard({ enabled, onSwipe, children }: { enabled: boolean; onSwipe: (dir: -1 | 1) => void; children: (dragged: () => boolean) => React.ReactNode }) {
+  const calm = useCalm();
+  const x = useMotionValue(0);
+  const rotate = useTransform(x, [-300, 300], [-10, 10]);
+  const again = useTransform(x, [-140, -30], [1, 0]);
+  const good = useTransform(x, [30, 140], [0, 1]);
+  const moved = useRef(0);
+  return (
+    <motion.div
+      data-no-swipe
+      className="relative touch-pan-y"
+      style={{ x, rotate }}
+      drag={enabled && !calm ? "x" : false}
+      dragSnapToOrigin
+      dragElastic={0.85}
+      dragConstraints={{ left: 0, right: 0 }}
+      onDragStart={() => (moved.current = Date.now())}
+      onDragEnd={(_, info) => {
+        moved.current = Date.now();
+        const go = info.offset.x > 120 || info.velocity.x > 700 ? 1 : info.offset.x < -120 || info.velocity.x < -700 ? -1 : 0;
+        if (go) {
+          animate(x, go * 700, { duration: 0.28, ease: [0.4, 0, 0.2, 1] });
+          onSwipe(go as -1 | 1);
+        }
+      }}
+      variants={{
+        enter: { opacity: 0, scale: calm ? 1 : 0.94, y: calm ? 0 : 14 },
+        center: { opacity: 1, scale: 1, y: 0 },
+        exit: (d: number) => (calm ? { opacity: 0 } : { opacity: 0, x: d * 640, rotate: d * 12 }),
+      }}
+      initial="enter"
+      animate="center"
+      exit="exit"
+      transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
+    >
+      {children(() => Date.now() - moved.current < 250)}
+      <motion.span style={{ opacity: again }} className="pointer-events-none absolute left-6 top-6 z-10 rounded-full border border-danger px-3 py-1 font-mono text-[11px] uppercase tracking-[0.16em] text-danger">
+        Again
+      </motion.span>
+      <motion.span style={{ opacity: good }} className="pointer-events-none absolute right-6 top-6 z-10 rounded-full border border-ok px-3 py-1 font-mono text-[11px] uppercase tracking-[0.16em] text-ok">
+        Good
+      </motion.span>
+    </motion.div>
   );
 }
 

@@ -85,12 +85,11 @@ export function MarketingNav() {
                   className="group relative py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-silver transition-colors hover:text-warm"
                 >
                   {t.nav[l.key]}
-                  <span
-                    className={cn(
-                      "absolute inset-x-0 -bottom-0.5 h-px origin-left bg-warm transition-transform duration-500 ease-[var(--ease-orbit)]",
-                      active ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100",
-                    )}
-                  />
+                  {active ? (
+                    <motion.span layoutId="site-nav-active" transition={{ type: "spring", stiffness: 420, damping: 38 }} className="absolute inset-x-0 -bottom-0.5 h-px bg-warm" />
+                  ) : (
+                    <span className="absolute inset-x-0 -bottom-0.5 h-px origin-left scale-x-0 bg-warm/60 transition-transform duration-500 ease-[var(--ease-orbit)] group-hover:scale-x-100" />
+                  )}
                 </Link>
               </li>
             );

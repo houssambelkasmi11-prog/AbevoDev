@@ -312,9 +312,12 @@ export function HowItWorks({ standalone = false }: { standalone?: boolean }) {
                   aria-pressed={focus === i}
                   className={cn(
                     "group relative w-full rounded-2xl border p-7 text-left transition-colors duration-500",
-                    focus === i ? "border-white/25 bg-white/[0.03]" : "border-white/10 hover:border-white/20",
+                    focus === i ? "border-transparent" : "border-white/10 hover:border-white/20",
                   )}
                 >
+                  {focus === i ? (
+                    <motion.span layoutId="how-focus" transition={{ type: "spring", stiffness: 300, damping: 34 }} className="pointer-events-none absolute inset-0 rounded-2xl border border-white/25 bg-white/[0.03]" />
+                  ) : null}
                   <span className={cn("relative z-10 flex h-[22px] w-[22px] items-center justify-center rounded-full border bg-void transition-colors", focus === i ? "border-warm" : "border-white/25")}>
                     <span className={cn("h-1.5 w-1.5 rounded-full transition-colors", focus === i ? "bg-warm" : "bg-white/25")} />
                   </span>
@@ -377,11 +380,14 @@ export function ChooseIntelligence({ standalone = false }: { standalone?: boolea
                   aria-checked={persona === i}
                   onClick={() => setPersona(i)}
                   className={cn(
-                    "flex items-center gap-3 rounded-xl border p-3 text-left transition-all duration-300",
-                    persona === i ? "border-warm bg-warm text-void" : "border-white/10 hover:border-white/25",
+                    "relative isolate flex items-center gap-3 rounded-xl border p-3 text-left transition-[color,border-color] duration-300",
+                    persona === i ? "border-warm text-void" : "border-white/10 hover:border-white/25",
                   )}
                 >
-                  <OrbitGlyph variant={x.glyph} className="h-7 w-7" />
+                  {persona === i ? <motion.span layoutId="choose-persona" transition={{ type: "spring", stiffness: 420, damping: 36 }} className="absolute inset-0 -z-10 rounded-xl bg-warm" /> : null}
+                  <motion.span key={persona === i ? "on" : "off"} animate={persona === i ? { rotate: [0, 120], scale: [1, 1.12, 1] } : undefined} transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }} className="inline-flex">
+                    <OrbitGlyph variant={x.glyph} className="h-7 w-7" />
+                  </motion.span>
                   <span>
                     <span className="block font-display text-[13px] font-bold tracking-[0.14em]">{x.name}</span>
                     <span className={cn("block text-[11px]", persona === i ? "text-void/60" : "text-muted")}>{c.roles[x.name] ?? x.role}</span>
@@ -401,10 +407,11 @@ export function ChooseIntelligence({ standalone = false }: { standalone?: boolea
                   aria-checked={provider === i}
                   onClick={() => setProvider(i)}
                   className={cn(
-                    "flex items-center justify-between rounded-xl border px-4 py-3 text-left transition-all duration-300",
-                    provider === i ? "border-warm bg-warm text-void" : "border-white/10 hover:border-white/25",
+                    "relative isolate flex items-center justify-between rounded-xl border px-4 py-3 text-left transition-[color,border-color] duration-300",
+                    provider === i ? "border-warm text-void" : "border-white/10 hover:border-white/25",
                   )}
                 >
+                  {provider === i ? <motion.span layoutId="choose-provider" transition={{ type: "spring", stiffness: 420, damping: 36 }} className="absolute inset-0 -z-10 rounded-xl bg-warm" /> : null}
                   <span className="font-display text-[15px] font-bold">{x.name}</span>
                   <span className={cn("font-mono text-[9.5px] uppercase tracking-[0.16em]", provider === i ? "text-void/60" : "text-muted")}>{c.yourKey}</span>
                 </button>

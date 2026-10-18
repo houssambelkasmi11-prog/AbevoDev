@@ -27,14 +27,20 @@ export function writeFx(level: FxLevel) {
   } catch {
     /* ignore */
   }
+  document.documentElement.dataset.fx = level;
   window.dispatchEvent(new CustomEvent(EVENT, { detail: level }));
 }
 
 export function useFxLevel(): FxLevel | null {
   const [level, setLevel] = useState<FxLevel | null>(null);
   useEffect(() => {
-    setLevel(readFx());
-    const on = () => setLevel(readFx());
+    const apply = () => {
+      const l = readFx();
+      document.documentElement.dataset.fx = l;
+      setLevel(l);
+    };
+    apply();
+    const on = apply;
     window.addEventListener(EVENT, on);
     window.addEventListener("storage", on);
     return () => {

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { TabUnderline } from "@/components/fx/motion-kit";
 
 const TABS = [
   { href: "/app/settings", label: "General" },
@@ -21,10 +22,10 @@ export function SettingsTabs() {
             key={t.href}
             href={t.href}
             aria-current={active ? "page" : undefined}
-            className={cn("relative px-3 pb-3 pt-1 text-[13.5px] transition-colors", active ? "text-ink" : "text-ink-2 hover:text-ink")}
+            className={cn("relative px-3 pb-3 pt-1 text-[13.5px] transition-colors duration-300", active ? "text-ink" : "text-ink-2 hover:text-ink")}
           >
             {t.label}
-            {active ? <span className="absolute inset-x-3 -bottom-px h-px bg-ink" /> : null}
+            {active ? <TabUnderline id="settings-tabs" className="inset-x-3" /> : null}
           </Link>
         );
       })}

@@ -14,6 +14,7 @@ import type { SourceRow, SubjectRow } from "@/lib/types";
 import { cn, relativeTime } from "@/lib/utils";
 import { addTextSource, addUrlSource, deleteSource, getSourceStatuses } from "@/server/actions/sources";
 import { formatBytes, KIND_LABEL, STATUS_LABEL } from "./source-meta";
+import { TabPill } from "@/components/fx/motion-kit";
 
 type SourceLite = Pick<SourceRow, "id" | "title" | "kind" | "status" | "status_detail" | "progress" | "subject_id" | "collection" | "pinned" | "size_bytes" | "page_count" | "updated_at">;
 
@@ -280,9 +281,12 @@ function AddSourceDialog({ open, onOpenChange, subjects, onUpload }: { open: boo
                 onUpload();
               } else setTab(k);
             }}
-            className={cn("flex h-9 items-center justify-center gap-2 rounded-lg text-[13px]", k !== "upload" && tab === k ? "bg-surface font-medium shadow-soft" : "text-ink-2")}
+            className={cn("relative isolate flex h-9 items-center justify-center gap-2 rounded-lg text-[13px] transition-colors", k !== "upload" && tab === k ? "font-medium text-ink" : "text-ink-2 hover:text-ink")}
           >
-            <Icon className="h-3.5 w-3.5" /> {l}
+            {k !== "upload" && tab === k ? <TabPill id="add-source-tabs" /> : null}
+            <span className="relative z-[1] flex items-center gap-2">
+              <Icon className="h-3.5 w-3.5" /> {l}
+            </span>
           </button>
         ))}
       </div>

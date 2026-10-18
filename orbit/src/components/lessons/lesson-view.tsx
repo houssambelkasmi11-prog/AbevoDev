@@ -14,8 +14,11 @@ import type { SourceChunkRow, SourceRow, SubjectRow } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { extractSourceWithAI, getSourceStatuses, reprocessSource, setTranscript, summarizeSource, updateSource } from "@/server/actions/sources";
 import { KIND_LABEL, STATUS_LABEL } from "./source-meta";
+import { TabPanels, TabPill, useTabSwipe } from "@/components/fx/motion-kit";
 
 type ChunkLite = Pick<SourceChunkRow, "id" | "ord" | "content" | "page" | "heading">;
+
+const STUDY_TABS = ["outline", "summary", "passages"] as const;
 
 export function LessonView({
   source,
@@ -35,6 +38,7 @@ export function LessonView({
   const router = useRouter();
   const toast = useToast();
   const [tab, setTab] = useState<"outline" | "summary" | "passages">(source.summary ? "summary" : source.outline.length ? "outline" : "passages");
+  const studySwipe = useTabSwipe(STUDY_TABS, tab, setTab);
   const [page, setPage] = useState<number | null>(initialPage);
   const [status, setStatus] = useState({ status: source.status, progress: source.progress, detail: source.status_detail });
   const [transcript, setTranscriptText] = useState("");
@@ -77,9 +81,12 @@ export function LessonView({
     });
 
   const tabBtn = (k: typeof tab, label: string, count?: number) => (
-    <button role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={cn("h-9 rounded-lg px-3 text-[12.5px]", tab === k ? "bg-surface font-medium shadow-soft" : "text-ink-2 hover:text-ink")}>
-      {label}
-      {count !== undefined ? <span className="ml-1.5 font-mono text-[10px] text-ink-3">{count}</span> : null}
+    <button role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={cn("relative isolate h-9 rounded-lg px-3 text-[12.5px] transition-colors", tab === k ? "font-medium text-ink" : "text-ink-2 hover:text-ink")}>
+      {tab === k ? <TabPill id="lesson-study-tabs" /> : null}
+      <span className="relative z-[1]">
+        {label}
+        {count !== undefined ? <span className="ml-1.5 font-mono text-[10px] text-ink-3">{count}</span> : null}
+      </span>
     </button>
   );
 
@@ -226,7 +233,8 @@ export function LessonView({
             {tabBtn("summary", "Summary")}
             {tabBtn("passages", "Passages", chunks.length)}
           </div>
-          <div className="max-h-[72vh] min-h-[40vh] overflow-y-auto p-4" data-lenis-prevent>
+          <div className="max-h-[72vh] min-h-[40vh] overflow-y-auto overflow-x-hidden p-4" data-lenis-prevent {...studySwipe}>
+            <TabPanels tabKey={tab} index={STUDY_TABS.indexOf(tab)} distance={18}>
             {tab === "outline" ? (
               source.outline.length ? (
                 <ol className="space-y-0.5">
@@ -315,6 +323,7 @@ export function LessonView({
                 <p className="py-8 text-center text-[13px] text-ink-2">No indexed passages yet.</p>
               )
             ) : null}
+            </TabPanels>
           </div>
         </section>
       </div>
