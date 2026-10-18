@@ -1,12 +1,12 @@
 import { chromium } from '/opt/node-tools/node_modules/playwright/index.mjs';
 import { spawn } from 'node:child_process';
-const RATE = +(process.env.RATE || 48), DUR = 30, N = RATE * DUR;
+const RATE = +(process.env.RATE || 48), DUR = +(process.env.DUR || 30), N = RATE * DUR;
 const start = +(process.env.START || 0), end = +(process.env.END || N);
 const out = process.env.OUT || `frames_${RATE}.mkv`;
 const browser = await chromium.launch({ args: ['--font-render-hinting=none','--disable-lcd-text'] });
 const page = await browser.newPage({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 });
 page.on('pageerror', e => console.log('PAGEERROR', e.message));
-await page.goto('file:///home/claude/orbit-ad/film.html');
+await page.goto('file:///home/claude/orbit-ad/'+(process.env.FILM||'film.html')+'');
 await page.evaluate(() => window.ready);
 // lossless intermediate (FFV1) so the final encode happens once
 const ff = spawn('ffmpeg', ['-y','-loglevel','error','-f','image2pipe','-framerate',String(RATE),'-c:v','png','-i','-','-c:v','ffv1','-level','3','-pix_fmt','yuv444p',out], { stdio: ['pipe','inherit','inherit'] });
