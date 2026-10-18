@@ -4,6 +4,7 @@ import { AppShell } from "@/components/app/app-shell";
 import { getContext } from "@/lib/bootstrap";
 import { encryptionAvailable } from "@/lib/crypto";
 import { env } from "@/lib/env";
+import { isAdmin } from "@/lib/auth/admin";
 
 export const metadata: Metadata = { title: { default: "Workspace", template: "%s · ORBIT" } };
 export const dynamic = "force-dynamic";
@@ -12,6 +13,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const { settings, workspace, workspaces, user, repo } = await getContext();
   const creds = await repo.list("credentials", { order: { column: "created_at" } }).catch(() => []);
   const live = creds.find((c) => c.status === "connected") ?? null;
+  const admin = await isAdmin(user).catch(() => false);
   const ai = {
     connected: !!live,
     label: live?.label ?? null,
@@ -26,6 +28,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       workspaces={workspaces}
       backend={env.backend}
       ai={ai}
+      admin={admin}
     >
       {children}
     </AppShell>

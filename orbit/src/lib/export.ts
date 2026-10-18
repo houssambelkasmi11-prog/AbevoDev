@@ -7,7 +7,7 @@ export interface ExportSection {
 }
 
 export function toMarkdown(title: string, sections: ExportSection[]): string {
-  return [`# ${title}`, ...sections.map((s) => [`## ${s.label}`, s.note ? `_${s.note}_` : "", s.markdown.trim()].filter(Boolean).join("\n\n"))].join("\n\n") + "\n";
+  return [`# ${title}`, ...sections.map((s) => [s.label ? `## ${s.label}` : "", s.note ? `_${s.note}_` : "", s.markdown.trim()].filter(Boolean).join("\n\n"))].join("\n\n") + "\n";
 }
 
 export function toPlainText(md: string): string {
@@ -41,7 +41,7 @@ export async function toDocx(title: string, sections: ExportSection[]): Promise<
     return runs;
   };
   for (const s of sections) {
-    children.push(new Paragraph({ text: s.label, heading: HeadingLevel.HEADING_1 }));
+    if (s.label) children.push(new Paragraph({ text: s.label, heading: HeadingLevel.HEADING_1 }));
     if (s.note) children.push(new Paragraph({ children: [new TextRun({ text: s.note, italics: true, color: "777B80" })] }));
     let inCode = false;
     for (const raw of s.markdown.split(/\r?\n/)) {
@@ -116,7 +116,7 @@ export async function toPdf(title: string, sections: ExportSection[]): Promise<U
   y -= 8;
   for (const s of sections) {
     y -= 10;
-    write(s.label, bold, 11, rgb(0.07, 0.07, 0.08));
+    if (s.label) write(s.label, bold, 11, rgb(0.07, 0.07, 0.08));
     if (s.note) write(s.note, italic, 9, rgb(0.47, 0.48, 0.5));
     y -= 4;
     let inCode = false;

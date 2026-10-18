@@ -76,6 +76,7 @@ const patchSchema = z.object({
   selected_source_ids: z.array(z.string()).max(100).optional(),
   linked_note_ids: z.array(z.string()).max(100).optional(),
   attachment_source_ids: z.array(z.string()).max(20).optional(),
+  ai_output: z.string().max(400_000).optional(),
 });
 
 export async function updateAssignment(id: string, input: z.input<typeof patchSchema>): Promise<ActionResult<AssignmentRow>> {

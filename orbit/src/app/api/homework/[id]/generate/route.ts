@@ -13,6 +13,20 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 const MODE_INSTRUCTIONS = {
+  complete: [
+    "MODE: DO IT. Write the finished assignment exactly as it will be handed in. It must be complete, correct and polished.",
+    "Answer every question and task in the assignment, in order, numbered the same way the assignment numbers them. Skip nothing.",
+    "Follow every instruction and constraint: required length, structure, format, citation style and language. Write in the language the assignment is written in.",
+    "Maths and science: show the working a teacher expects to see, concisely and in LaTeX, and make each final answer clear (bold it). Check every result before writing it.",
+    "Essays, reports and open questions: a proper title, an introduction, well-argued body paragraphs with headings where they help, and a conclusion. Natural, confident, student-level academic prose.",
+    "If reference material is provided, use it, and cite it in the required style (default APA-style author-date in the text) with a reference list at the end using the real titles of the provided sources. Never write [S1]-style keys, and never invent sources, quotes or statistics.",
+    "Output ONLY the finished document in Markdown. No tutoring, no tips, no 'what to remember', no notes or comments to the student, no disclaimers, no placeholders, no mention of AI. If something essential is missing, make the most reasonable assumption and state it in one short line where it applies.",
+  ].join("\n"),
+  help: [
+    "MODE: HELP. The student already has the finished work for this assignment (provided as <finished_work>). Answer exactly what they ask, directly and clearly.",
+    "When they ask how something was done or for the steps, give a numbered step-by-step walkthrough with the reasoning for each step. When they ask to explain a concept, explain it simply with one example.",
+    "Keep it focused and short unless they ask for more. Use LaTeX for maths.",
+  ].join("\n"),
   guide: [
     "MODE: GUIDE ME. You are tutoring the student through this assignment. Do NOT produce the finished answer.",
     "Give the smallest helpful next step: a hint, a guiding question, or a short explanation of a concept they need. Escalate help gradually if they ask for more.",
@@ -36,7 +50,7 @@ const MODE_INSTRUCTIONS = {
 } as const;
 
 const schema = z.object({
-  mode: z.enum(["guide", "solve", "research", "automate"]),
+  mode: z.enum(["complete", "help", "guide", "solve", "research", "automate"]),
   message: z.string().max(10_000).optional(),
 });
 
@@ -53,14 +67,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { mode, message } = parsed.data;
 
   return ndjsonStream(req, async (emit, signal) => {
-    const personaSlug = mode === "guide" ? "socrates" : mode === "solve" ? "axiom" : mode === "automate" ? "pulse" : "atlas";
-    const persona = (await repo.list("personas", { where: { slug: personaSlug } }))[0] ?? null;
+    const chatLike = mode === "guide" || mode === "help";
+    const personaSlug = mode === "help" ? "atlas" : mode === "guide" ? "socrates" : mode === "solve" ? "axiom" : mode === "automate" ? "pulse" : "atlas";
+    // "complete" writes the deliverable itself, so it runs without a tutoring persona voice.
+    const persona = mode === "complete" ? null : ((await repo.list("personas", { where: { slug: personaSlug } }))[0] ?? null);
     const resolved = await resolveModel(repo, { persona });
 
     let grounding: RetrievalResult = { blocks: [], citations: [], method: "none" };
-    if (mode !== "guide" || a.selected_source_ids.length) {
+    if (!chatLike || a.selected_source_ids.length) {
       const query = [a.title, a.requirements?.summary, ...(a.requirements?.questions ?? []).slice(0, 6), message].filter(Boolean).join("\n");
-      grounding = await retrieve(repo, workspace.id, query, { subjectIds: [], sourceIds: a.selected_source_ids, noteIds: a.linked_note_ids, collections: [] }, mode === "research" ? 10 : 6);
+      grounding = await retrieve(repo, workspace.id, query, { subjectIds: [], sourceIds: a.selected_source_ids, noteIds: a.linked_note_ids, collections: [] }, mode === "research" || mode === "complete" ? 10 : 6);
       if (!a.selected_source_ids.length && !a.linked_note_ids.length) grounding = { blocks: [], citations: [], method: "none" };
     }
 
@@ -73,26 +89,27 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       a.prompt_text ? `TEXT:\n${a.prompt_text.slice(0, 20_000)}` : "",
       "</assignment>",
       a.student_work.trim() && mode === "guide" ? `<student_progress>\n${a.student_work.slice(0, 8000)}\n</student_progress>` : "",
+      mode === "help" && a.ai_output ? `<finished_work>\n${a.ai_output.slice(0, 30_000)}\n</finished_work>` : "",
     ]
       .filter(Boolean)
       .join("\n");
 
     const messages: ChatMessage[] = [{ role: "user", content: brief }];
-    if (mode === "guide") {
+    if (chatLike) {
       for (const turn of a.guide_log.slice(-12)) messages.push({ role: turn.role === "ai" ? "assistant" : "user", content: turn.content });
-      messages.push({ role: "user", content: message?.trim() || "I'm getting started. What should I do first?" });
+      messages.push({ role: "user", content: message?.trim() || (mode === "help" ? "Explain step by step how this was done." : "I'm getting started. What should I do first?") });
     } else if (message?.trim()) {
-      messages.push({ role: "user", content: `Additional request from the student: ${message.trim()}` });
+      messages.push({ role: "user", content: `Extra instructions for the finished work: ${message.trim()}` });
     }
 
     let out = "";
     try {
       for await (const piece of PROVIDERS[resolved.conn.kind].stream(resolved.conn, {
         model: resolved.model,
-        system: buildSystemPrompt({ persona, grounding: grounding.blocks, extra: MODE_INSTRUCTIONS[mode] }),
+        system: buildSystemPrompt({ persona, grounding: grounding.blocks, extra: MODE_INSTRUCTIONS[mode], deliverable: mode === "complete" }),
         messages,
         temperature: persona?.temperature ?? null,
-        maxTokens: mode === "guide" ? 1200 : 6000,
+        maxTokens: chatLike ? 1600 : mode === "complete" ? 8000 : 6000,
         signal,
       })) {
         out += piece;
@@ -103,8 +120,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       throw e;
     }
 
-    if (mode === "guide") {
-      const log = [...a.guide_log, { role: "student" as const, content: message?.trim() || "I'm getting started. What should I do first?" }, { role: "ai" as const, content: out }];
+    if (chatLike) {
+      const log = [...a.guide_log, { role: "student" as const, content: message?.trim() || (mode === "help" ? "Explain step by step how this was done." : "I'm getting started. What should I do first?") }, { role: "ai" as const, content: out }];
       await repo.update("assignments", id, { guide_log: log.slice(-40), stages: { ...a.stages, generation: "done" }, status: a.status === "planning" ? "in_progress" : a.status });
     } else if (out.trim()) {
       await repo.update("assignments", id, {

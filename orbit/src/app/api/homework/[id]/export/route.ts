@@ -22,6 +22,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const include = req.nextUrl.searchParams.get("include") ?? "work";
 
   const sections: ExportSection[] = [];
+  if (include === "final" && a.ai_output) sections.push({ label: "", markdown: a.ai_output });
   if (include === "work" || include === "both") {
     sections.push({ label: "Your work", note: "Written by the student.", markdown: a.student_work.trim() || "_(empty)_" });
   }

@@ -2,7 +2,7 @@
 
 import * as DM from "@radix-ui/react-dropdown-menu";
 import * as RD from "@radix-ui/react-dialog";
-import { ChevronsUpDown, LogOut, Menu, Moon, PanelLeftClose, PanelLeftOpen, Plus, Search, Sun, X } from "lucide-react";
+import { ChevronsUpDown, LogOut, Menu, Moon, PanelLeftClose, PanelLeftOpen, Plus, Search, ShieldCheck, Sun, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, MotionConfig } from "motion/react";
@@ -38,6 +38,7 @@ export interface ShellProps {
   workspaces: WorkspaceRow[];
   backend: "local" | "supabase";
   ai: AIState;
+  admin?: boolean;
   children: React.ReactNode;
 }
 
@@ -56,7 +57,7 @@ export function AppShell(props: ShellProps) {
   );
 }
 
-function ShellInner({ user, workspace, workspaces, children }: ShellProps) {
+function ShellInner({ user, workspace, workspaces, admin, children }: ShellProps) {
   const pathname = usePathname();
   const { t } = useI18n();
   const [collapsed, setCollapsed] = useState(false);
@@ -111,7 +112,7 @@ function ShellInner({ user, workspace, workspaces, children }: ShellProps) {
         )}
         aria-label="Workspace navigation"
       >
-        <SidebarContent pillId="nav-pill-desktop" collapsed={collapsed} workspace={workspace} workspaces={workspaces} user={user} onSearch={() => setPaletteOpen(true)} />
+        <SidebarContent pillId="nav-pill-desktop" collapsed={collapsed} workspace={workspace} workspaces={workspaces} user={user} admin={admin} onSearch={() => setPaletteOpen(true)} />
         <button
           onClick={toggleCollapsed}
           className="mx-3 mb-3 flex h-9 items-center gap-3 rounded-lg px-2.5 text-[12.5px] text-ink-2 hover:bg-soft hover:text-ink"
@@ -182,7 +183,7 @@ function ShellInner({ user, workspace, workspaces, children }: ShellProps) {
                 <X className="h-4 w-4" />
               </button>
             </RD.Close>
-            <SidebarContent pillId="nav-pill-drawer" collapsed={false} workspace={workspace} workspaces={workspaces} user={user} onSearch={() => { setDrawer(false); setPaletteOpen(true); }} />
+            <SidebarContent pillId="nav-pill-drawer" collapsed={false} workspace={workspace} workspaces={workspaces} user={user} admin={admin} onSearch={() => { setDrawer(false); setPaletteOpen(true); }} />
           </RD.Content>
         </RD.Portal>
       </RD.Root>
@@ -198,6 +199,7 @@ function SidebarContent({
   workspace,
   workspaces,
   user,
+  admin,
   onSearch,
 }: {
   pillId: string;
@@ -205,6 +207,7 @@ function SidebarContent({
   workspace: WorkspaceRow;
   workspaces: WorkspaceRow[];
   user: { email: string; name: string | null };
+  admin?: boolean;
   onSearch: () => void;
 }) {
   const pathname = usePathname();
@@ -268,6 +271,23 @@ function SidebarContent({
               </li>
             );
           })}
+          {admin ? (
+            <li className="mt-2 border-t border-line pt-2">
+              <Link
+                href="/app/admin"
+                aria-current={isActive(pathname, "/app/admin") ? "page" : undefined}
+                title={collapsed ? "Admin" : undefined}
+                className={cn(
+                  "flex h-9 items-center gap-3 rounded-lg px-2.5 text-[13.5px] transition-colors",
+                  isActive(pathname, "/app/admin") ? "bg-surface text-ink shadow-soft" : "text-ink-2 hover:bg-soft/70 hover:text-ink",
+                  collapsed && "justify-center px-0",
+                )}
+              >
+                <ShieldCheck className="h-[17px] w-[17px] shrink-0" strokeWidth={1.7} />
+                {collapsed ? null : <span className="truncate">Admin</span>}
+              </Link>
+            </li>
+          ) : null}
         </ul>
       </nav>
 

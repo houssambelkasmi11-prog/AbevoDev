@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Check, Copy, Download, FileUp, Lightbulb, ListTodo, PenLine, Plus, Search, Sparkles, Square, Trash2, Wand } from "lucide-react";
+import { ArrowLeft, Check, Copy, Download, FileText, FileUp, MessageCircleQuestion, PenLine, Search, Sparkles, Square, Trash2, Wand } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
@@ -13,37 +13,18 @@ import { Badge, Field, Input, Select, Textarea } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
 import { useDebouncedCallback } from "@/lib/client/hooks";
 import { streamJson } from "@/lib/client/stream";
-import type { AssignmentRequirements, AssignmentRow, AssignmentStepRow, Citation, HomeworkMode, StageKey, StageStatus } from "@/lib/types";
-import { cn, formatDate } from "@/lib/utils";
-import {
-  addStep,
-  analyzeAssignment,
-  buildPlan,
-  deleteAssignment,
-  deleteStep,
-  reviewWork,
-  setMode,
-  suggestSources,
-  toggleStep,
-  updateAssignment,
-} from "@/server/actions/homework";
+import type { AssignmentRequirements, AssignmentRow, AssignmentStepRow, Citation, StageKey, StageStatus } from "@/lib/types";
+import { cn } from "@/lib/utils";
+import { analyzeAssignment, deleteAssignment, suggestSources, updateAssignment } from "@/server/actions/homework";
 
 const STAGES: { key: StageKey; label: string }[] = [
   { key: "input", label: "Input" },
   { key: "analysis", label: "Analysis" },
   { key: "sources", label: "Sources" },
-  { key: "generation", label: "Generation" },
-  { key: "review", label: "Review" },
-  { key: "export", label: "Export" },
+  { key: "generation", label: "Finished" },
 ];
 
-const MODES: { key: HomeworkMode; letter: string; title: string; body: string; icon: typeof Lightbulb }[] = [
-  { key: "guide", letter: "A", title: "Guide me", body: "Hints and questions that lead you there. No finished answers.", icon: Lightbulb },
-  { key: "solve", letter: "B", title: "Solve & explain", body: "A worked solution with every step and a verification.", icon: Wand },
-  { key: "research", letter: "C", title: "Research & draft", body: "An organised draft from your sources, with citations and claims to verify.", icon: Search },
-  { key: "automate", letter: "D", title: "Automate my workflow", body: "Steps, schedule and an outline — tracked to completion.", icon: ListTodo },
-  { key: "review", letter: "E", title: "Review my answer", body: "Checks completeness, reasoning, accuracy, clarity and instructions.", icon: PenLine },
-];
+const HELP_CHIPS = ["Explain it step by step", "Explain the hardest part simply", "How do I check this is right?"];
 
 const empty: AssignmentRequirements = { subject: null, summary: "", questions: [], instructions: [], dueDate: null, outputFormat: null, objectives: [], constraints: [] };
 
@@ -56,7 +37,6 @@ function toLocalInput(iso: string | null): string {
 
 export function HomeworkStudio({
   assignment: initial,
-  steps: initialSteps,
   subjects,
   attachments: initialAttachments,
   library,
@@ -72,19 +52,19 @@ export function HomeworkStudio({
   const router = useRouter();
   const toast = useToast();
   const [a, setA] = useState(initial);
-  const [steps, setSteps] = useState(initialSteps);
   const [attachments, setAttachments] = useState(initialAttachments);
   const [req, setReq] = useState<AssignmentRequirements>(initial.requirements ?? empty);
   const [suggestions, setSuggestions] = useState<{ id: string; title: string; type: "source" | "note"; reason: string }[] | null>(null);
   const [output, setOutput] = useState(initial.ai_output ?? "");
   const [outputModel, setOutputModel] = useState(initial.ai_output_model);
   const [citations, setCitations] = useState<Citation[]>([]);
-  const [guideInput, setGuideInput] = useState("");
+  const [helpInput, setHelpInput] = useState("");
+  const [extra, setExtra] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [genMode, setGenMode] = useState<"complete" | "help">("complete");
   const [streamingText, setStreamingText] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<{ message: string; code?: string } | null>(null);
-  const [newStep, setNewStep] = useState("");
-  const [include, setInclude] = useState<"work" | "draft" | "both">("work");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [, start] = useTransition();
@@ -98,7 +78,7 @@ export function HomeworkStudio({
     return r;
   };
   const savePrompt = useDebouncedCallback((v: string) => void patch({ prompt_text: v }), 800);
-  const saveWork = useDebouncedCallback((v: string) => void patch({ student_work: v }), 900);
+  const saveOutput = useDebouncedCallback((v: string) => void patch({ ai_output: v }), 900);
   const saveReq = useDebouncedCallback((r: AssignmentRequirements) => void patch({ requirements: r }), 900);
 
   const aiError = (msg: string) => setError({ message: msg, code: /provider|model/i.test(msg) ? "no_provider" : undefined });
@@ -138,7 +118,8 @@ export function HomeworkStudio({
     }
   };
 
-  const generate = async (mode: "guide" | "solve" | "research" | "automate", message?: string) => {
+  const generate = async (mode: "complete" | "help", message?: string) => {
+    setGenMode(mode);
     setError(null);
     setStreaming(true);
     setStreamingText("");
@@ -163,18 +144,22 @@ export function HomeworkStudio({
       );
     } finally {
       setStreaming(false);
-      if (mode === "guide") {
-        if (text) setA((x) => ({ ...x, guide_log: [...x.guide_log, { role: "student", content: message || "I'm getting started. What should I do first?" }, { role: "ai", content: text }] }));
+      if (mode === "help") {
+        if (text) setA((x) => ({ ...x, guide_log: [...x.guide_log, { role: "student", content: message || "Explain step by step how this was done." }, { role: "ai", content: text }] }));
         setStreamingText("");
       } else if (text) {
         setOutput(text);
         setOutputModel(model);
         setStreamingText("");
+        setEditing(false);
+        setA((x) => ({ ...x, ai_output: text, stages: { ...x.stages, generation: "done" } }));
       }
       router.refresh();
     }
   };
 
+  const writing = streaming && genMode === "complete";
+  const helping = streaming && genMode === "help";
   const stageOf = (k: StageKey): StageStatus => a.stages[k];
   const reqArray = (k: "questions" | "instructions" | "objectives" | "constraints", label: string) => (
     <Field label={label}>
@@ -438,252 +423,113 @@ export function HomeworkStudio({
         </div>
       </section>
 
-      {/* 4 — Generation */}
-      <section id="stage-generation" className="scroll-mt-32 pt-12">
-        <StageTitle n="04" title="Generation" status={stageOf("generation")} />
-        <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5" role="radiogroup" aria-label="Mode">
-          {MODES.map((m) => (
-            <button
-              key={m.key}
-              role="radio"
-              aria-checked={a.mode === m.key}
-              onClick={() => {
-                setA((x) => ({ ...x, mode: m.key }));
-                start(async () => void (await setMode(a.id, m.key)));
-              }}
-              className={cn("flex flex-col rounded-2xl border p-4 text-left transition-colors", a.mode === m.key ? "border-ink bg-ink text-canvas" : "border-line bg-surface hover:border-line-strong")}
-            >
-              <span className="flex items-center justify-between">
-                <span className="font-mono text-[10px] opacity-60">MODE {m.letter}</span>
-                <m.icon className="h-3.5 w-3.5 opacity-70" />
-              </span>
-              <span className="mt-3 text-[13.5px] font-medium">{m.title}</span>
-              <span className={cn("mt-1 text-[11.5px] leading-snug", a.mode === m.key ? "text-canvas/65" : "text-ink-2")}>{m.body}</span>
-            </button>
-          ))}
+      {/* 4 — Finished work */}
+      <section id="stage-generation" className="scroll-mt-32 pb-24 pt-12">
+        <StageTitle n="04" title="Finished work" status={stageOf("generation")} />
+        <p className="mt-2 text-[12.5px] text-ink-2">ORBIT writes the whole assignment from your analysis and sources, ready to hand in.</p>
+        <div className="mt-4 rounded-2xl border border-line bg-surface p-4">
+          <Field label="Anything specific? (optional)">
+            <Input value={extra} onChange={(e) => setExtra(e.target.value)} placeholder="e.g. 800 words, in Dutch, formal tone, APA references" aria-label="Extra instructions" />
+          </Field>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Button disabled={!hasProvider || streaming} loading={writing && !streamingText} onClick={() => void generate("complete", extra)}>
+              <Wand className="h-4 w-4" /> {output ? "Rewrite it" : "Do it for me"}
+            </Button>
+            {streaming ? (
+              <Button variant="ghost" onClick={() => abort.current?.abort()}>
+                <Square className="h-3.5 w-3.5" /> Stop
+              </Button>
+            ) : null}
+            {!a.requirements ? <span className="text-[12px] text-ink-2">Tip: run the analysis first for the best result.</span> : null}
+          </div>
         </div>
 
-        <div className="mt-6">
-          {a.mode === "guide" ? (
-            <div className="rounded-2xl border border-line bg-surface">
+        {writing || output ? (
+          <div className="mt-5 overflow-hidden rounded-2xl border border-line bg-soft/60">
+            <div className="flex flex-wrap items-center gap-2 border-b border-line bg-surface px-4 py-2.5">
+              <FileText className="h-4 w-4 text-ink-2" />
+              <span className="text-[13px] font-medium">{a.title}</span>
+              <span className="font-mono text-[10px] text-ink-3">{writing ? "writing…" : `${(output.trim().split(/\s+/).filter(Boolean).length).toLocaleString("en-GB")} words`}</span>
+              {!writing ? (
+                <div className="ml-auto flex flex-wrap items-center gap-1.5">
+                  <button onClick={() => setEditing((e) => !e)} className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[12px] text-ink-2 hover:bg-soft hover:text-ink">
+                    {editing ? <Check className="h-3.5 w-3.5" /> : <PenLine className="h-3.5 w-3.5" />} {editing ? "Done" : "Edit"}
+                  </button>
+                  <button onClick={() => navigator.clipboard.writeText(output).then(() => toast.show("Copied"))} className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[12px] text-ink-2 hover:bg-soft hover:text-ink">
+                    <Copy className="h-3.5 w-3.5" /> Copy
+                  </button>
+                  <a href={`/api/homework/${a.id}/export?format=docx&include=final`} download className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-line px-2.5 text-[12px] hover:bg-soft">
+                    <Download className="h-3.5 w-3.5" /> Word
+                  </a>
+                  <a href={`/print/homework/${a.id}?auto=1`} target="_blank" rel="noopener" className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-ink px-3 text-[12px] font-medium text-canvas hover:opacity-90">
+                    <Download className="h-3.5 w-3.5" /> PDF
+                  </a>
+                </div>
+              ) : null}
+            </div>
+            <div className="max-h-[78vh] overflow-y-auto px-3 py-6 sm:px-8" data-lenis-prevent>
+              <div className="mx-auto max-w-[760px] rounded-xl border border-line bg-surface px-6 py-8 shadow-soft sm:px-12 sm:py-12">
+                {editing ? (
+                  <Textarea
+                    value={output}
+                    onChange={(e) => {
+                      setOutput(e.target.value);
+                      saveOutput.run(e.target.value);
+                    }}
+                    className="min-h-[60vh] border-0 font-mono text-[13px] leading-relaxed focus:border-0"
+                    aria-label="Edit the finished work (Markdown)"
+                  />
+                ) : writing && !streamingText ? (
+                  <OrbitPulse className="h-6 w-6 text-ink" />
+                ) : (
+                  <Markdown text={writing ? streamingText : output} citations={citations} />
+                )}
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {output && !writing ? (
+          <div className="mt-6 rounded-2xl border border-line bg-surface">
+            <div className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-3">
+              <MessageCircleQuestion className="h-4 w-4 text-ink-2" />
+              <span className="text-[13.5px] font-medium">Need help understanding it?</span>
+              <span className="text-[12px] text-ink-2">Ask for steps or an explanation, only when you want one.</span>
+            </div>
+            {a.guide_log.length || helping ? (
               <ol className="max-h-[520px] space-y-4 overflow-y-auto p-5" data-lenis-prevent>
-                {a.guide_log.length === 0 && !streaming ? <li className="text-[13px] text-ink-2">Ask for a hint, share your attempt, or ask what to do first. SOCRATES will guide without handing you the answer.</li> : null}
                 {a.guide_log.map((t, i) => (
                   <li key={i} className={t.role === "student" ? "flex justify-end" : ""}>
-                    {t.role === "student" ? (
-                      <p className="max-w-[80%] rounded-2xl rounded-tr-md bg-ink px-4 py-2.5 text-[13.5px] text-canvas">{t.content}</p>
-                    ) : (
-                      <div>
-                        <Badge tone="ai">AI guidance</Badge>
-                        <Markdown text={t.content} className="mt-2" />
-                      </div>
-                    )}
+                    {t.role === "student" ? <p className="max-w-[80%] rounded-2xl rounded-tr-md bg-ink px-4 py-2.5 text-[13.5px] text-canvas">{t.content}</p> : <Markdown text={t.content} />}
                   </li>
                 ))}
-                {streaming ? (
-                  <li>
-                    <Badge tone="ai">AI guidance</Badge>
-                    {streamingText ? <Markdown text={streamingText} className="mt-2" /> : <OrbitPulse className="mt-2 h-5 w-5 text-ink" />}
-                  </li>
-                ) : null}
+                {helping ? <li>{streamingText ? <Markdown text={streamingText} /> : <OrbitPulse className="h-5 w-5 text-ink" />}</li> : null}
               </ol>
-              <form
-                className="flex gap-2 border-t border-line p-3"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const msg = guideInput;
-                  setGuideInput("");
-                  void generate("guide", msg);
-                }}
-              >
-                <Input value={guideInput} onChange={(e) => setGuideInput(e.target.value)} placeholder="I'm stuck on question 2…" aria-label="Message to tutor" />
-                <Button type="submit" disabled={streaming || !hasProvider}>
-                  {guideInput.trim() ? "Send" : "Give me a hint"}
-                </Button>
-              </form>
+            ) : null}
+            <div className="flex flex-wrap gap-1.5 px-4 pt-3">
+              {HELP_CHIPS.map((c) => (
+                <button key={c} disabled={streaming || !hasProvider} onClick={() => void generate("help", c)} className="h-8 rounded-full border border-line px-3 text-[12px] text-ink-2 hover:border-ink hover:text-ink disabled:opacity-50">
+                  {c}
+                </button>
+              ))}
             </div>
-          ) : a.mode === "review" ? (
-            <p className="rounded-2xl border border-dashed border-line-strong p-5 text-[13px] text-ink-2">Write or paste your answer in <a href="#stage-review" className="underline">Your work</a> below, then run the review.</p>
-          ) : (
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                {a.mode === "automate" ? (
-                  <Button
-                    loading={busy === "plan"}
-                    disabled={!hasProvider || streaming}
-                    onClick={() =>
-                      runAction("plan", async () => {
-                        const r = await buildPlan(a.id);
-                        if (r.ok) {
-                          setSteps((s) => [...s.filter((x) => x.origin === "student" || x.done), ...r.data]);
-                          toast.show(`${r.data.length} steps planned and added to your calendar`);
-                        } else aiError(r.error);
-                      })
-                    }
-                  >
-                    <ListTodo className="h-4 w-4" /> Build plan & schedule
-                  </Button>
-                ) : null}
-                <Button variant={a.mode === "automate" ? "outline" : "primary"} disabled={!hasProvider || streaming} onClick={() => void generate(a.mode as "solve" | "research" | "automate")}>
-                  <Sparkles className="h-4 w-4" />
-                  {a.mode === "solve" ? (output ? "Regenerate solution" : "Generate worked solution") : a.mode === "research" ? (output ? "Regenerate draft" : "Generate research draft") : "Draft an outline"}
-                </Button>
-                {streaming ? (
-                  <Button variant="ghost" onClick={() => abort.current?.abort()}>
-                    <Square className="h-3.5 w-3.5" /> Stop
-                  </Button>
-                ) : null}
-                {a.mode === "research" && a.selected_source_ids.length === 0 ? <span className="text-[12px] text-ink-2">Tip: select sources above so the draft can cite them.</span> : null}
-              </div>
-
-              {a.mode === "automate" ? (
-                <div className="mt-5 rounded-2xl border border-line bg-surface p-4">
-                  <p className="label text-ink-3">Steps · {steps.filter((s) => s.done).length}/{steps.length}</p>
-                  <ul className="mt-2 divide-y divide-line">
-                    {steps.map((s) => (
-                      <li key={s.id} className="group flex items-start gap-3 py-2.5">
-                        <input
-                          type="checkbox"
-                          checked={s.done}
-                          onChange={(e) => {
-                            const done = e.target.checked;
-                            setSteps((xs) => xs.map((x) => (x.id === s.id ? { ...x, done } : x)));
-                            start(async () => void (await toggleStep(s.id, done)));
-                          }}
-                          className="mt-1 accent-[var(--ink)]"
-                          aria-label={s.title}
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className={cn("text-[13.5px]", s.done && "text-ink-3 line-through")}>{s.title}</p>
-                          <p className="text-[11.5px] text-ink-2">
-                            {[s.detail, s.estimate_minutes ? `${s.estimate_minutes} min` : null, s.scheduled_at ? formatDate(s.scheduled_at, { weekday: "short", month: "short", day: "numeric" }) : null].filter(Boolean).join(" · ")}
-                          </p>
-                        </div>
-                        {s.origin === "ai" ? <Badge tone="ai">AI</Badge> : null}
-                        <button onClick={() => start(async () => { await deleteStep(s.id); setSteps((xs) => xs.filter((x) => x.id !== s.id)); })} aria-label="Delete step" className="rounded p-1 text-ink-3 opacity-0 hover:text-danger focus:opacity-100 group-hover:opacity-100">
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                  <form
-                    className="mt-2 flex gap-2"
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      if (!newStep.trim()) return;
-                      start(async () => {
-                        const r = await addStep(a.id, newStep);
-                        if (r.ok) {
-                          setSteps((xs) => [...xs, r.data]);
-                          setNewStep("");
-                        } else toast.error(r.error);
-                      });
-                    }}
-                  >
-                    <Input value={newStep} onChange={(e) => setNewStep(e.target.value)} placeholder="Add your own step" className="h-9 text-[13px]" aria-label="New step" />
-                    <Button type="submit" size="sm" variant="outline">
-                      <Plus className="h-3.5 w-3.5" />
-                    </Button>
-                  </form>
-                </div>
-              ) : null}
-
-              {streaming || output ? (
-                <div className="mt-5 rounded-2xl border border-dashed border-line-strong bg-canvas">
-                  <div className="flex items-center justify-between border-b border-dashed border-line-strong px-4 py-2.5">
-                    <span className="flex items-center gap-2">
-                      <Badge tone="ai">AI-generated draft</Badge>
-                      <span className="font-mono text-[10px] text-ink-3">{outputModel ?? ""}</span>
-                    </span>
-                    {!streaming ? (
-                      <button onClick={() => navigator.clipboard.writeText(output).then(() => toast.show("Copied"))} className="flex items-center gap-1.5 text-[11.5px] text-ink-2 hover:text-ink">
-                        <Copy className="h-3 w-3" /> Copy
-                      </button>
-                    ) : null}
-                  </div>
-                  <div className="max-h-[640px] overflow-y-auto px-5 py-4" data-lenis-prevent>
-                    {streaming && !streamingText ? <OrbitPulse className="h-5 w-5 text-ink" /> : <Markdown text={streaming ? streamingText : output} citations={citations} />}
-                  </div>
-                  <p className="border-t border-dashed border-line-strong px-4 py-2 text-[11px] text-ink-2">This is an AI study aid, kept separate from your work. Verify it, and write your submission in your own words.</p>
-                </div>
-              ) : null}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* 5 — Review */}
-      <section id="stage-review" className="scroll-mt-32 pt-12">
-        <StageTitle
-          n="05"
-          title="Your work & review"
-          status={stageOf("review")}
-          action={
-            <Button
-              size="sm"
-              loading={busy === "review"}
-              disabled={!hasProvider}
-              onClick={() =>
-                runAction("review", async () => {
-                  saveWork.flush((document.getElementById("student-work") as HTMLTextAreaElement | null)?.value ?? a.student_work);
-                  await new Promise((r) => setTimeout(r, 300));
-                  const r = await reviewWork(a.id);
-                  if (r.ok) setA((x) => ({ ...x, review: r.data, stages: { ...x.stages, review: "done" } }));
-                  else aiError(r.error);
-                })
-              }
+            <form
+              className="flex gap-2 p-3"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!helpInput.trim()) return;
+                const msg = helpInput;
+                setHelpInput("");
+                void generate("help", msg);
+              }}
             >
-              <PenLine className="h-3.5 w-3.5" /> Review my answer
-            </Button>
-          }
-        />
-        <div className="mt-4 rounded-2xl border border-ink bg-surface">
-          <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
-            <Badge tone="student">Your work</Badge>
-            <span className="font-mono text-[10px] text-ink-3">{a.student_work.trim().split(/\s+/).filter(Boolean).length} words</span>
+              <Input value={helpInput} onChange={(e) => setHelpInput(e.target.value)} placeholder="How did you get question 2?" aria-label="Ask about the finished work" />
+              <Button type="submit" variant="outline" disabled={streaming || !hasProvider || !helpInput.trim()}>
+                Ask
+              </Button>
+            </form>
           </div>
-          <Textarea
-            id="student-work"
-            defaultValue={a.student_work}
-            onChange={(e) => saveWork.run(e.target.value)}
-            placeholder="Write your answer here. Markdown is supported."
-            className="min-h-[280px] rounded-none border-0 text-[14.5px] leading-relaxed focus:border-0"
-            aria-label="Your work"
-          />
-        </div>
-        {a.review.length ? (
-          <ul className="mt-4 space-y-2">
-            {a.review.map((f, i) => (
-              <li key={i} className={cn("rounded-xl border bg-surface p-4", f.severity === "major" ? "border-danger/50" : "border-line")}>
-                <div className="flex items-center gap-2">
-                  <Badge tone="ai">{f.category}</Badge>
-                  <span className={cn("label", f.severity === "major" ? "text-danger" : "text-ink-3")}>{f.severity}</span>
-                </div>
-                {f.excerpt ? <blockquote className="mt-2 border-l border-line-strong pl-3 text-[12.5px] italic text-ink-2">“{f.excerpt}”</blockquote> : null}
-                <p className="mt-2 text-[13px]">{f.comment}</p>
-                {f.suggestion ? <p className="mt-1 text-[12.5px] text-ink-2">Suggestion: {f.suggestion}</p> : null}
-              </li>
-            ))}
-          </ul>
         ) : null}
-      </section>
-
-      {/* 6 — Export */}
-      <section id="stage-export" className="scroll-mt-32 pb-24 pt-12">
-        <StageTitle n="06" title="Export" status={stageOf("export")} />
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <Select aria-label="What to include" value={include} onChange={(e) => setInclude(e.target.value as typeof include)} className="w-56">
-            <option value="work">Your work only</option>
-            <option value="draft">AI draft only (labelled)</option>
-            <option value="both">Both, clearly separated</option>
-          </Select>
-          {(["pdf", "docx", "md", "txt"] as const).map((f) => (
-            <a key={f} href={`/api/homework/${a.id}/export?format=${f}&include=${include}`} className="inline-flex h-10 items-center gap-2 rounded-xl border border-line-strong px-4 text-[13px] hover:bg-soft" download>
-              <Download className="h-3.5 w-3.5" /> {f.toUpperCase()}
-            </a>
-          ))}
-        </div>
-        <p className="mt-3 text-[12px] text-ink-2">ORBIT doesn&apos;t submit anything on your behalf. Exports label AI-generated content explicitly.</p>
       </section>
 
       <ConfirmDialog
