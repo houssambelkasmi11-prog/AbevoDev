@@ -118,10 +118,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     const messages: ChatMessage[] = [{ role: "user", content: brief }];
     if (chatLike) {
-      for (const turn of a.guide_log.slice(-12)) messages.push({ role: turn.role === "ai" ? "assistant" : "user", content: turn.content });
+      for (const turn of a.guide_log.filter((t) => t.content.trim()).slice(-12)) messages.push({ role: turn.role === "ai" ? "assistant" : "user", content: turn.content });
       messages.push({ role: "user", content: message?.trim() || (mode === "help" ? "Explain step by step how this was done." : "I'm getting started. What should I do first?") });
     } else if (message?.trim()) {
       messages.push({ role: "user", content: `Instructions for the finished work (follow them): ${message.trim()}` });
+    }
+
+    // Some providers (DeepSeek reasoning models, Gemini) reject two turns in a row from the same role: merge them.
+    const turns: ChatMessage[] = [];
+    for (const m of messages) {
+      const last = turns[turns.length - 1];
+      if (last && last.role === m.role && typeof last.content === "string" && typeof m.content === "string") last.content = `${last.content}\n\n${m.content}`;
+      else turns.push({ ...m });
     }
 
     let out = "";
@@ -129,9 +137,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       for await (const piece of PROVIDERS[resolved.conn.kind].stream(resolved.conn, {
         model: resolved.model,
         system: buildSystemPrompt({ persona, grounding: grounding.blocks, extra: MODE_INSTRUCTIONS[mode], deliverable: mode === "complete" }),
-        messages,
+        messages: turns,
         temperature: persona?.temperature ?? null,
-        maxTokens: chatLike ? 1600 : mode === "complete" ? 8000 : 6000,
+        // thinking models spend part of the budget on reasoning before any visible text, so keep it generous
+        maxTokens: mode === "guide" ? 4000 : 8000,
         signal,
       })) {
         out += piece;
@@ -142,6 +151,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       throw e;
     }
 
+    if (!out.trim()) {
+      await repo.update("assignments", id, { stages: { ...a.stages, generation: a.ai_output ? "done" : "error" } });
+      emit({ type: "error", message: "The AI didn't send an answer back. Try again, or pick another model in Settings → AI." });
+      return;
+    }
     if (chatLike) {
       const log = [...a.guide_log, { role: "student" as const, content: message?.trim() || (mode === "help" ? "Explain step by step how this was done." : "I'm getting started. What should I do first?") }, { role: "ai" as const, content: out }];
       await repo.update("assignments", id, { guide_log: log.slice(-40), stages: { ...a.stages, generation: "done" }, status: a.status === "planning" ? "in_progress" : a.status });

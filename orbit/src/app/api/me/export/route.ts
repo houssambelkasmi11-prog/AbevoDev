@@ -22,6 +22,7 @@ const TABLES: TableName[] = [
   "quiz_attempts",
   "study_sessions",
   "events",
+  "calendar_feeds",
   "graph_nodes",
   "graph_edges",
 ];
@@ -38,7 +39,7 @@ export async function GET() {
   for (const t of TABLES) {
     const rows = (await repo.list(t)) as unknown as Record<string, unknown>[];
     // Never export secrets: API keys stay encrypted and are left out entirely.
-    data[t] = t === "credentials" ? rows.map(({ key_ciphertext: _omit, ...rest }) => rest) : rows;
+    data[t] = t === "credentials" ? rows.map(({ key_ciphertext: _omit, ...rest }) => rest) : t === "calendar_feeds" ? rows.map(({ url: _private, ...rest }) => rest) : rows;
   }
   const body = JSON.stringify(
     {

@@ -1,9 +1,9 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Plus, Sparkles, Trash2 } from "lucide-react";
+import { CalendarPlus, ChevronLeft, ChevronRight, MapPin, Plus, RefreshCw, Sparkles, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { NoProviderNotice } from "@/components/app/no-provider";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -12,14 +12,16 @@ import { useToast } from "@/components/ui/toast";
 import type { EventRow } from "@/lib/types";
 import { addDays, cn, formatTime, sameDay, startOfDay } from "@/lib/utils";
 import { acceptPlan, createEvent, deleteEvent, proposeWeekPlan, updateEvent, type ProposedEvent } from "@/server/actions/calendar";
+import { addFeed, removeFeed, syncFeed, syncStaleFeeds, type FeedInfo } from "@/server/actions/feeds";
 
-type Ev = Pick<EventRow, "id" | "title" | "kind" | "starts_at" | "ends_at" | "done" | "origin" | "assignment_id" | "subject_id"> & { focus?: boolean };
+type Ev = Pick<EventRow, "id" | "title" | "kind" | "starts_at" | "ends_at" | "done" | "origin" | "assignment_id" | "subject_id"> & { focus?: boolean; feed_id?: string | null; location?: string | null };
 
 const KIND_STYLE: Record<string, string> = {
   deadline: "bg-ink text-canvas",
   exam: "border border-ink text-ink",
   study: "bg-soft text-ink",
   other: "bg-soft text-ink-2",
+  class: "bg-[#7fa9cc]/20 text-ink",
   focus: "border border-dashed border-line-strong text-ink-2",
 };
 
@@ -28,10 +30,40 @@ function toLocalInput(d: Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-export function CalendarView({ events: initial, subjects, hasProvider }: { events: Ev[]; subjects: { id: string; name: string }[]; hasProvider: boolean }) {
+function ago(iso: string | null): string {
+  if (!iso) return "not synced yet";
+  const m = Math.round((Date.now() - Date.parse(iso)) / 60000);
+  if (m < 1) return "synced just now";
+  if (m < 60) return `synced ${m} min ago`;
+  if (m < 1440) return `synced ${Math.round(m / 60)} h ago`;
+  return `synced ${Math.round(m / 1440)} d ago`;
+}
+
+export function CalendarView({ events: initial, subjects, hasProvider, feeds: initialFeeds = [] }: { events: Ev[]; subjects: { id: string; name: string }[]; hasProvider: boolean; feeds?: FeedInfo[] }) {
   const router = useRouter();
   const toast = useToast();
   const [events, setEvents] = useState(initial);
+  const [feeds, setFeeds] = useState(initialFeeds);
+  const [subOpen, setSubOpen] = useState(false);
+  const [feedUrl, setFeedUrl] = useState("");
+  const [feedName, setFeedName] = useState("");
+  const [feedBusy, setFeedBusy] = useState<string | null>(null);
+  const [feedError, setFeedError] = useState<string | null>(null);
+  useEffect(() => setEvents(initial), [initial]);
+  useEffect(() => setFeeds(initialFeeds), [initialFeeds]);
+  // keep subscribed timetables fresh: re-sync quietly when the calendar opens
+  useEffect(() => {
+    if (!initialFeeds.length) return;
+    let alive = true;
+    void syncStaleFeeds().then((r) => {
+      if (alive && r.ok && r.data > 0) router.refresh();
+    });
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const feedName_ = (id?: string | null) => feeds.find((f) => f.id === id)?.name ?? "Timetable";
   const [cursor, setCursor] = useState(() => {
     const d = new Date();
     d.setDate(1);
@@ -73,6 +105,9 @@ export function CalendarView({ events: initial, subjects, hasProvider }: { event
           <div className="flex gap-2">
             <Button size="sm" variant="ghost" onClick={() => { const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0); setCursor(d); setSelected(startOfDay(new Date())); }}>
               Today
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setSubOpen(true)}>
+              <CalendarPlus className="h-3.5 w-3.5" /> Timetable{feeds.length ? ` · ${feeds.length}` : ""}
             </Button>
             <Button size="sm" variant="outline" onClick={() => setPlanOpen(true)}>
               <Sparkles className="h-3.5 w-3.5" /> Plan my week
@@ -149,7 +184,7 @@ export function CalendarView({ events: initial, subjects, hasProvider }: { event
                 <p className={cn("text-[13.5px]", e.done && "text-ink-3 line-through")}>{e.title}</p>
                 <p className="text-[11.5px] text-ink-2">
                   {formatTime(e.starts_at)}
-                  {e.ends_at ? `–${formatTime(e.ends_at)}` : ""} · {e.focus ? "focus session" : e.kind}
+                  {e.ends_at ? `–${formatTime(e.ends_at)}` : ""} · {e.focus ? "focus session" : e.feed_id ? feedName_(e.feed_id) : e.kind}
                   {e.assignment_id ? (
                     <>
                       {" · "}
@@ -159,9 +194,14 @@ export function CalendarView({ events: initial, subjects, hasProvider }: { event
                     </>
                   ) : null}
                 </p>
+                {e.location ? (
+                  <p className="mt-0.5 flex items-center gap-1 text-[11.5px] text-ink-2">
+                    <MapPin className="h-3 w-3" /> {e.location}
+                  </p>
+                ) : null}
               </div>
               {e.origin === "ai" ? <Badge tone="ai">AI</Badge> : null}
-              {!e.focus ? (
+              {!e.focus && !e.feed_id ? (
                 <button
                   onClick={() =>
                     start(async () => {
@@ -192,7 +232,7 @@ export function CalendarView({ events: initial, subjects, hasProvider }: { event
               start(async () => {
                 const r = await createEvent({
                   title: String(fd.get("title")),
-                  kind: String(fd.get("kind")) as EventRow["kind"],
+                  kind: String(fd.get("kind")) as "study" | "deadline" | "exam" | "other",
                   starts_at: startAt.toISOString(),
                   ends_at: mins ? new Date(startAt.getTime() + mins * 60000).toISOString() : null,
                   subject_id: String(fd.get("subject") || "") || null,
@@ -238,6 +278,105 @@ export function CalendarView({ events: initial, subjects, hasProvider }: { event
             </Button>
           </form>
         ) : null}
+      </Dialog>
+
+      <Dialog open={subOpen} onOpenChange={(o) => { setSubOpen(o); if (!o) setFeedError(null); }} title="Timetable & calendars" description="Paste an iCal link from MyTimetable, Google Calendar, Outlook or Canvas. ORBIT keeps your classes and exams in sync.">
+        <div className="flex flex-col gap-5">
+          {feeds.length ? (
+            <ul className="divide-y divide-line rounded-xl border border-line">
+              {feeds.map((f) => (
+                <li key={f.id} className="flex items-start gap-3 p-3">
+                  <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-[#7fa9cc]" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13.5px] font-medium">{f.name}</p>
+                    <p className="text-[11.5px] text-ink-2">
+                      {f.host} · {f.event_count} events · {ago(f.last_synced_at)}
+                    </p>
+                    {f.last_error ? <p className="mt-1 text-[11.5px] text-danger">{f.last_error}</p> : null}
+                  </div>
+                  <button
+                    disabled={!!feedBusy}
+                    onClick={async () => {
+                      setFeedBusy(`sync-${f.id}`);
+                      const r = await syncFeed(f.id);
+                      setFeedBusy(null);
+                      if (r.ok) {
+                        toast.show(`${r.data} events synced`);
+                        setFeeds((xs) => xs.map((x) => (x.id === f.id ? { ...x, event_count: r.data, last_synced_at: new Date().toISOString(), last_error: null } : x)));
+                        router.refresh();
+                      } else toast.error(r.error);
+                    }}
+                    aria-label={`Sync ${f.name}`}
+                    className="rounded-lg p-2 text-ink-2 hover:bg-soft hover:text-ink disabled:opacity-50"
+                  >
+                    <RefreshCw className={cn("h-3.5 w-3.5", feedBusy === `sync-${f.id}` && "animate-spin")} />
+                  </button>
+                  <button
+                    disabled={!!feedBusy}
+                    onClick={async () => {
+                      setFeedBusy(`rm-${f.id}`);
+                      const r = await removeFeed(f.id);
+                      setFeedBusy(null);
+                      if (r.ok) {
+                        setFeeds((xs) => xs.filter((x) => x.id !== f.id));
+                        setEvents((xs) => xs.filter((x) => x.feed_id !== f.id));
+                        router.refresh();
+                      } else toast.error(r.error);
+                    }}
+                    aria-label={`Remove ${f.name}`}
+                    className="rounded-lg p-2 text-ink-3 hover:bg-soft hover:text-danger disabled:opacity-50"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <form
+            className="flex flex-col gap-3"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!feedUrl.trim()) return;
+              setFeedBusy("add");
+              setFeedError(null);
+              const r = await addFeed({ url: feedUrl, name: feedName || undefined });
+              setFeedBusy(null);
+              if (r.ok) {
+                setFeeds((xs) => [...xs, r.data]);
+                setFeedUrl("");
+                setFeedName("");
+                toast.show(`${r.data.name} added · ${r.data.event_count} events`);
+                router.refresh();
+              } else setFeedError(r.error);
+            }}
+          >
+            <Field label="Calendar link (iCal)">
+              <Input value={feedUrl} onChange={(e) => setFeedUrl(e.target.value)} placeholder="https://mytimetable.hhs.nl/ical?…" inputMode="url" autoComplete="off" spellCheck={false} />
+            </Field>
+            <Field label="Name (optional)">
+              <Input value={feedName} onChange={(e) => setFeedName(e.target.value)} placeholder="e.g. HHS timetable" />
+            </Field>
+            {feedError ? <p role="alert" className="rounded-lg border border-danger/40 px-3 py-2 text-[12.5px] text-danger">{feedError}</p> : null}
+            <Button type="submit" loading={feedBusy === "add"} disabled={!feedUrl.trim()} className="self-end">
+              <CalendarPlus className="h-4 w-4" /> Add calendar
+            </Button>
+          </form>
+          <details className="rounded-xl bg-soft/60 px-4 py-3 text-[12.5px] text-ink-2">
+            <summary className="cursor-pointer font-medium text-ink">Where do I find my link?</summary>
+            <ul className="mt-2 list-disc space-y-1 pl-4">
+              <li>
+                <b>MyTimetable</b> (HHS and others): open your schedule, choose <i>Export</i> / <i>Calendar link</i>, and copy the iCal link.
+              </li>
+              <li>
+                <b>Google Calendar</b>: Settings → your calendar → <i>Secret address in iCal format</i>.
+              </li>
+              <li>
+                <b>Outlook</b>: Settings → Calendar → Shared calendars → <i>Publish a calendar</i> → copy the ICS link.
+              </li>
+            </ul>
+            <p className="mt-2">The link is private, so ORBIT stores it encrypted and never shows it again. Calendars refresh automatically every few hours.</p>
+          </details>
+        </div>
       </Dialog>
 
       <Dialog open={planOpen} onOpenChange={(o) => { setPlanOpen(o); if (!o) setProposals(null); }} title="Plan my week" description="PULSE proposes study sessions around your deadlines and existing events. Nothing is saved until you accept.">

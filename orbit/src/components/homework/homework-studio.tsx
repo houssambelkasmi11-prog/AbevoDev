@@ -70,6 +70,8 @@ export function HomeworkStudio({
   const [level, setLevel] = useState("secondary");
   const [editing, setEditing] = useState(false);
   const [genMode, setGenMode] = useState<"complete" | "help">("complete");
+  const [pendingQ, setPendingQ] = useState("");
+  const [helpError, setHelpError] = useState<string | null>(null);
   const [streamingText, setStreamingText] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<{ message: string; code?: string } | null>(null);
@@ -129,6 +131,8 @@ export function HomeworkStudio({
   const generate = async (mode: "complete" | "help", message?: string) => {
     setGenMode(mode);
     setError(null);
+    setHelpError(null);
+    if (mode === "help") setPendingQ(message || "Explain it step by step");
     setStreaming(true);
     setStreamingText("");
     const ctrl = new AbortController();
@@ -149,14 +153,18 @@ export function HomeworkStudio({
           } else if (e.type === "final") {
             text = String(e.text);
             setStreamingText(text);
-          } else if (e.type === "error") setError({ message: e.message, code: e.code });
+          } else if (e.type === "error") {
+            if (mode === "help") setHelpError(e.message);
+            else setError({ message: e.message, code: e.code });
+          }
         },
         ctrl.signal,
       );
     } finally {
       setStreaming(false);
       if (mode === "help") {
-        if (text) setA((x) => ({ ...x, guide_log: [...x.guide_log, { role: "student", content: message || "Explain step by step how this was done." }, { role: "ai", content: text }] }));
+        if (text.trim()) setA((x) => ({ ...x, guide_log: [...x.guide_log, { role: "student", content: message || "Explain step by step how this was done." }, { role: "ai", content: text }] }));
+        setPendingQ("");
         setStreamingText("");
       } else if (text) {
         setOutput(text);
@@ -169,6 +177,8 @@ export function HomeworkStudio({
     }
   };
 
+  // drop empty answers left by earlier failed attempts, and the question that went with them
+  const helpLog = a.guide_log.filter((t, i, arr) => (t.role === "ai" ? t.content.trim() : arr[i + 1]?.role !== "ai" || arr[i + 1]?.content.trim()));
   const writing = streaming && genMode === "complete";
   const helping = streaming && genMode === "help";
   const stageOf = (k: StageKey): StageStatus => a.stages[k];
@@ -517,14 +527,34 @@ export function HomeworkStudio({
               <span className="text-[13.5px] font-medium">Need help understanding it?</span>
               <span className="text-[12px] text-ink-2">Ask for steps or an explanation, only when you want one.</span>
             </div>
-            {a.guide_log.length || helping ? (
-              <ol className="max-h-[520px] space-y-4 overflow-y-auto p-5" data-lenis-prevent>
-                {a.guide_log.map((t, i) => (
+            {helpLog.length || helping || helpError ? (
+              <ol className="max-h-[560px] space-y-4 overflow-y-auto p-5" data-lenis-prevent>
+                {helpLog.map((t, i) => (
                   <li key={i} className={t.role === "student" ? "flex justify-end" : ""}>
                     {t.role === "student" ? <p className="max-w-[80%] rounded-2xl rounded-tr-md bg-ink px-4 py-2.5 text-[13.5px] text-canvas">{t.content}</p> : <Markdown text={t.content} />}
                   </li>
                 ))}
-                {helping ? <li>{streamingText ? <Markdown text={streamingText} /> : <OrbitPulse className="h-5 w-5 text-ink" />}</li> : null}
+                {helping && pendingQ ? (
+                  <li className="flex justify-end">
+                    <p className="max-w-[80%] rounded-2xl rounded-tr-md bg-ink px-4 py-2.5 text-[13.5px] text-canvas">{pendingQ}</p>
+                  </li>
+                ) : null}
+                {helping ? (
+                  <li>
+                    {streamingText ? (
+                      <Markdown text={streamingText} />
+                    ) : (
+                      <span className="flex items-center gap-2 text-[12.5px] text-ink-2">
+                        <OrbitPulse className="h-5 w-5 text-ink" /> Thinking…
+                      </span>
+                    )}
+                  </li>
+                ) : null}
+                {helpError && !helping ? (
+                  <li role="alert" className="rounded-xl border border-danger/40 px-4 py-3 text-[13px] text-danger">
+                    {helpError}
+                  </li>
+                ) : null}
               </ol>
             ) : null}
             <div className="flex flex-wrap gap-1.5 px-4 pt-3">

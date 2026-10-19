@@ -911,5 +911,17 @@
 "Download my data": "Mijn gegevens downloaden",
 "connected": "gekoppeld",
 "error": "fout",
-"untested": "niet getest"
+"untested": "niet getest",
+"Timetable": "Rooster",
+"Timetable & calendars": "Rooster & agenda's",
+"Paste an iCal link from MyTimetable, Google Calendar, Outlook or Canvas. ORBIT keeps your classes and exams in sync.": "Plak een iCal-link van MyTimetable, Google Agenda, Outlook of Canvas. ORBIT houdt je lessen en tentamens automatisch bij.",
+"Calendar link (iCal)": "Agendalink (iCal)",
+"Name (optional)": "Naam (optioneel)",
+"Add calendar": "Agenda toevoegen",
+"Where do I find my link?": "Waar vind ik mijn link?",
+"The link is private, so ORBIT stores it encrypted and never shows it again. Calendars refresh automatically every few hours.": "De link is privé, dus ORBIT slaat hem versleuteld op en laat hem nooit meer zien. Agenda's worden elke paar uur automatisch bijgewerkt.",
+"Your timetable, deadlines, planned sessions and completed focus time in one place. Double-click a day to add an event.": "Je rooster, deadlines, geplande sessies en focustijd op één plek. Dubbelklik op een dag om iets toe te voegen.",
+"This calendar is already added.": "Deze agenda is al toegevoegd.",
+"Paste the full calendar link (it starts with https:// or webcal://).": "Plak de volledige agendalink (begint met https:// of webcal://).",
+"This link doesn't return a calendar (no iCal data found).": "Deze link geeft geen agenda terug (geen iCal-gegevens gevonden)."
 }

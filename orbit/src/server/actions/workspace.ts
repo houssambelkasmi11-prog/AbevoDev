@@ -50,7 +50,7 @@ export async function deleteWorkspace(id: string): Promise<ActionResult> {
   return run(async () => {
     const { repo, workspaces, settings } = await getContext();
     if (workspaces.length <= 1) throw new Error("You need at least one workspace.");
-    const tables: TableName[] = ["subjects", "notes", "sources", "conversations", "assignments", "flashcards", "quizzes", "study_sessions", "events", "graph_nodes", "graph_edges"];
+    const tables: TableName[] = ["subjects", "notes", "sources", "conversations", "assignments", "flashcards", "quizzes", "study_sessions", "events", "calendar_feeds", "graph_nodes", "graph_edges"];
     // Child rows that hang off workspace rows.
     const [sources, convs, assignments, quizzes] = await Promise.all([
       repo.list("sources", { where: { workspace_id: id } }),
@@ -215,6 +215,7 @@ const ALL_TABLES: TableName[] = [
   "flashcards",
   "study_sessions",
   "events",
+  "calendar_feeds",
   "graph_edges",
   "graph_nodes",
   "personas",

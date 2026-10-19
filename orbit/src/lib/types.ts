@@ -318,13 +318,28 @@ export interface StudySessionRow extends BaseRow {
 export interface EventRow extends BaseRow {
   workspace_id: string;
   title: string;
-  kind: "study" | "deadline" | "exam" | "other";
+  kind: "study" | "deadline" | "exam" | "other" | "class";
   starts_at: ISODate;
   ends_at: ISODate | null;
   subject_id: string | null;
   assignment_id: string | null;
   done: boolean;
-  origin: "student" | "ai";
+  origin: "student" | "ai" | "feed";
+  /** Set when the event comes from a subscribed calendar (iCal feed). */
+  feed_id?: string | null;
+  location?: string | null;
+  external_uid?: string | null;
+}
+
+export interface CalendarFeedRow extends BaseRow {
+  workspace_id: string;
+  name: string;
+  /** Encrypted when ORBIT_ENCRYPTION_KEY is set (the link is a private token). */
+  url: string;
+  color: string | null;
+  last_synced_at: ISODate | null;
+  last_error: string | null;
+  event_count: number;
 }
 
 export type EntityType = "subject" | "note" | "source" | "conversation" | "assignment" | "concept";
@@ -369,6 +384,7 @@ export interface Tables {
   quiz_attempts: QuizAttemptRow;
   study_sessions: StudySessionRow;
   events: EventRow;
+  calendar_feeds: CalendarFeedRow;
   graph_nodes: GraphNodeRow;
   graph_edges: GraphEdgeRow;
 }
