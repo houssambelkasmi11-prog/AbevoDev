@@ -7,6 +7,7 @@ import rehypeHighlight from "rehype-highlight";
 import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
+import { DIAGRAM_LANGS, ProcessBlock } from "@/components/app/process-diagram";
 import type { Citation } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -34,8 +35,23 @@ export const Markdown = memo(function Markdown({ text, citations = [], className
     <div translate="no" className={cn("orbit-md", className)}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
-        rehypePlugins={[rehypeKatex, [rehypeHighlight, { detect: true }]]}
+        rehypePlugins={[rehypeKatex, [rehypeHighlight, { detect: true, plainText: DIAGRAM_LANGS }]]}
         components={{
+          pre({ children, ...rest }) {
+            const child = Array.isArray(children) ? children[0] : children;
+            const cls = (child as { props?: { className?: string } } | null)?.props?.className ?? "";
+            if (DIAGRAM_LANGS.some((l) => cls.includes(`language-${l}`))) return <>{children}</>;
+            return <pre {...rest}>{children}</pre>;
+          },
+          code({ className, children, ...rest }) {
+            const lang = /language-(\w+)/.exec(className ?? "")?.[1];
+            if (lang && DIAGRAM_LANGS.includes(lang)) return <ProcessBlock source={String(children).trim()} />;
+            return (
+              <code className={className} {...rest}>
+                {children}
+              </code>
+            );
+          },
           a({ href, children }) {
             if (href?.startsWith("#cite-")) {
               const c = byKey.get(href.slice(6));

@@ -7,6 +7,7 @@ import ReactMarkdown from "react-markdown";
 import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
+import { DIAGRAM_LANGS, ProcessBlock } from "@/components/app/process-diagram";
 
 /** A4 hand-in document. "Save as PDF" in the print dialog produces a vector PDF with real text and typeset maths. */
 export function PrintDocument({ id, title, subject, name, markdown, autoPrint }: { id: string; title: string; subject: string | null; name: string | null; markdown: string; autoPrint: boolean }) {
@@ -41,7 +42,27 @@ export function PrintDocument({ id, title, subject, name, markdown, autoPrint }:
           <p>{[subject, name, date].filter(Boolean).join("  ·  ")}</p>
         </header>
         <div className="hw-body">
-          <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm, remarkMath]}
+            rehypePlugins={[rehypeKatex]}
+            components={{
+              pre({ children, ...rest }) {
+                const child = Array.isArray(children) ? children[0] : children;
+                const cls = (child as { props?: { className?: string } } | null)?.props?.className ?? "";
+                if (DIAGRAM_LANGS.some((l) => cls.includes(`language-${l}`))) return <>{children}</>;
+                return <pre {...rest}>{children}</pre>;
+              },
+              code({ className, children, ...rest }) {
+                const lang = /language-(\w+)/.exec(className ?? "")?.[1];
+                if (lang && DIAGRAM_LANGS.includes(lang)) return <ProcessBlock source={String(children).trim()} />;
+                return (
+                  <code className={className} {...rest}>
+                    {children}
+                  </code>
+                );
+              },
+            }}
+          >
             {body}
           </ReactMarkdown>
         </div>

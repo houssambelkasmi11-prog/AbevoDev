@@ -3,6 +3,7 @@
 export type ClientStreamEvent =
   | { type: "meta"; [k: string]: unknown }
   | { type: "delta"; text: string }
+  | { type: "final"; text: string }
   | { type: "done"; [k: string]: unknown }
   | { type: "error"; message: string; code?: string };
 

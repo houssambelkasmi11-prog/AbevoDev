@@ -17,10 +17,24 @@ const MODE_INSTRUCTIONS = {
     "MODE: DO IT. Write the finished assignment exactly as it will be handed in. It must be complete, correct and polished.",
     "Answer every question and task in the assignment, in order, numbered the same way the assignment numbers them. Skip nothing.",
     "Follow every instruction and constraint: required length, structure, format, citation style and language. Write in the language the assignment is written in.",
-    "Maths and science: show the working a teacher expects to see, concisely and in LaTeX, and make each final answer clear (bold it). Check every result before writing it.",
-    "Essays, reports and open questions: a proper title, an introduction, well-argued body paragraphs with headings where they help, and a conclusion. Natural, confident, student-level academic prose.",
-    "If reference material is provided, use it, and cite it in the required style (default APA-style author-date in the text) with a reference list at the end using the real titles of the provided sources. Never write [S1]-style keys, and never invent sources, quotes or statistics.",
-    "Output ONLY the finished document in Markdown. No tutoring, no tips, no 'what to remember', no notes or comments to the student, no disclaimers, no placeholders, no mention of AI. If something essential is missing, make the most reasonable assumption and state it in one short line where it applies.",
+    "Maths and science: show the working a teacher expects to see, concisely and in LaTeX, and make each final answer clear. Check every result before writing it.",
+    "If reference material is provided, use it, and cite it in the required style (default author-date in the text) with a reference list at the end using the real titles of the provided sources. Never write [S1]-style keys, and never invent sources, quotes or statistics.",
+    "",
+    "VOICE. It must read like a capable student wrote it, not like an AI assistant:",
+    "- Write at the student's level (see LEVEL below). Plain, precise words. A student explains things in their own way; they don't sound like a press release.",
+    "- Vary sentence length a lot. Mix short sentences with longer ones. Paragraphs have different lengths. Not every paragraph ends with a summary sentence.",
+    "- Be concrete: specific examples, numbers, names and cases from the material instead of general statements.",
+    "- Take a clear position when the task asks for an opinion or argument, and give the reasoning behind it.",
+    "- Use headings only where the format calls for them (reports, case studies, multi-part answers). Essays are flowing paragraphs under a title. Prefer paragraphs over bullet lists unless the task asks for a list.",
+    "- Bold only final answers in calculations. No emojis. No em dashes or en dashes: use commas, full stops, brackets or colons instead.",
+    "- Never use these: delve, crucial, pivotal, vital, landscape, tapestry, realm, testament, multifaceted, intricate, navigate (figuratively), foster, leverage, robust, seamless, underscore, showcase, meticulous, 'in today's world', 'in today's fast-paced', 'it is important to note', 'it is worth noting', 'plays a crucial role', 'a wide range of', 'in conclusion,' as the first words of the last paragraph, 'not only ... but also' more than once, 'furthermore' or 'moreover' more than once in the whole text, rhetorical questions as openers, and groups of three adjectives or examples used as a habit.",
+    "- No opening that restates the question, and no closing line that sums up everything once more.",
+    "",
+    "DIAGRAMS. When the assignment asks for a process flow, BPMN model, flowchart, swimlane diagram or workflow, draw it. Never describe it as text, a list or ASCII art. Write it as a fenced code block with the language bpmn containing only JSON in this shape:",
+    '```bpmn\n{"title":"Order handling","lanes":["Customer","Sales"],"nodes":[{"id":"s","type":"start","label":"Order placed","lane":"Customer"},{"id":"t1","type":"user","label":"Check order","lane":"Sales"},{"id":"g1","type":"xor","label":"In stock?","lane":"Sales"},{"id":"e","type":"end","label":"Order shipped","lane":"Sales"}],"flows":[{"from":"s","to":"t1"},{"from":"t1","to":"g1"},{"from":"g1","to":"e","label":"Yes"}]}\n```',
+    "Node types: start, end, intermediate, timer, message (events); task, user, service, manual, subprocess (activities); xor, and, or, event (gateways); data, store (data objects). Use lanes for roles/departments when the process has more than one actor. Every gateway gets labelled outgoing flows (e.g. Yes / No). A flow with \"kind\":\"message\" is a dashed message flow between participants. Use correct BPMN logic: one start, explicit end events, parallel splits joined by a matching and-gateway. Short labels (verb + object for tasks). After the diagram, write one or two sentences explaining it, like a student would.",
+    "",
+    "Output ONLY the finished document in Markdown. No tutoring, no tips, no notes or comments to the student, no disclaimers, no placeholders, no mention of AI. If something essential is missing, make the most reasonable assumption and state it in one short line where it applies.",
   ].join("\n"),
   help: [
     "MODE: HELP. The student already has the finished work for this assignment (provided as <finished_work>). Answer exactly what they ask, directly and clearly.",
@@ -53,6 +67,14 @@ const schema = z.object({
   mode: z.enum(["complete", "help", "guide", "solve", "research", "automate"]),
   message: z.string().max(10_000).optional(),
 });
+
+/** Em/en dashes are a common giveaway of generated text; swap them outside code and maths. */
+function tidyDashes(md: string): string {
+  return md
+    .split(/(```[\s\S]*?```|\$\$[\s\S]*?\$\$|\$[^$\n]+\$)/g)
+    .map((part, i) => (i % 2 ? part : part.replace(/\s+[—–]\s+/g, ", ").replace(/(\d)\s*[–—]\s*(\d)/g, "$1-$2").replace(/[—–]/g, ", ")))
+    .join("");
+}
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const ctx = await getRepoOrNull();
@@ -99,7 +121,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       for (const turn of a.guide_log.slice(-12)) messages.push({ role: turn.role === "ai" ? "assistant" : "user", content: turn.content });
       messages.push({ role: "user", content: message?.trim() || (mode === "help" ? "Explain step by step how this was done." : "I'm getting started. What should I do first?") });
     } else if (message?.trim()) {
-      messages.push({ role: "user", content: `Extra instructions for the finished work: ${message.trim()}` });
+      messages.push({ role: "user", content: `Instructions for the finished work (follow them): ${message.trim()}` });
     }
 
     let out = "";
@@ -124,6 +146,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       const log = [...a.guide_log, { role: "student" as const, content: message?.trim() || (mode === "help" ? "Explain step by step how this was done." : "I'm getting started. What should I do first?") }, { role: "ai" as const, content: out }];
       await repo.update("assignments", id, { guide_log: log.slice(-40), stages: { ...a.stages, generation: "done" }, status: a.status === "planning" ? "in_progress" : a.status });
     } else if (out.trim()) {
+      if (mode === "complete") out = tidyDashes(out);
       await repo.update("assignments", id, {
         ai_output: out,
         ai_output_model: resolved.model,
@@ -131,6 +154,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         status: a.status === "planning" ? "in_progress" : a.status,
       });
     }
+    if (mode === "complete" && out.trim()) emit({ type: "final", text: out });
     emit({ type: "done" });
   });
 }

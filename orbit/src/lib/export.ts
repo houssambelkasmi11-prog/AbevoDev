@@ -44,7 +44,17 @@ export async function toDocx(title: string, sections: ExportSection[]): Promise<
     if (s.label) children.push(new Paragraph({ text: s.label, heading: HeadingLevel.HEADING_1 }));
     if (s.note) children.push(new Paragraph({ children: [new TextRun({ text: s.note, italics: true, color: "777B80" })] }));
     let inCode = false;
+    let inDiagram = false;
     for (const raw of s.markdown.split(/\r?\n/)) {
+      if (/^```(bpmn|process|flow)\b/.test(raw)) {
+        inDiagram = true;
+        children.push(new Paragraph({ children: [new TextRun({ text: "[Diagram: included in the PDF version]", italics: true, color: "777B80" })] }));
+        continue;
+      }
+      if (inDiagram) {
+        if (raw.startsWith("```")) inDiagram = false;
+        continue;
+      }
       if (raw.startsWith("```")) {
         inCode = !inCode;
         continue;

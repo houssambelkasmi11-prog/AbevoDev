@@ -3,6 +3,7 @@ import { errorMessage } from "@/lib/utils";
 import { NoProviderError, ProviderError } from "./types";
 
 export type StreamEvent =
+  | { type: "final"; text: string }
   | { type: "meta"; [k: string]: unknown }
   | { type: "delta"; text: string }
   | { type: "done"; [k: string]: unknown }

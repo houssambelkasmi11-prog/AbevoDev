@@ -24,6 +24,13 @@ const STAGES: { key: StageKey; label: string }[] = [
   { key: "generation", label: "Finished" },
 ];
 
+const LEVELS: Record<string, string> = {
+  secondary: "secondary school student (about 15 to 18). Clear, correct, not overly academic vocabulary.",
+  vocational: "vocational (MBO) student. Practical, clear and direct, simple sentences, applied to real work situations.",
+  bachelor: "university / HBO bachelor student. Academic but readable, well-argued, properly referenced.",
+  master: "master's student. Analytical and critical, engages with theory and literature, precise terminology.",
+};
+
 const HELP_CHIPS = ["Explain it step by step", "Explain the hardest part simply", "How do I check this is right?"];
 
 const empty: AssignmentRequirements = { subject: null, summary: "", questions: [], instructions: [], dueDate: null, outputFormat: null, objectives: [], constraints: [] };
@@ -60,6 +67,7 @@ export function HomeworkStudio({
   const [citations, setCitations] = useState<Citation[]>([]);
   const [helpInput, setHelpInput] = useState("");
   const [extra, setExtra] = useState("");
+  const [level, setLevel] = useState("secondary");
   const [editing, setEditing] = useState(false);
   const [genMode, setGenMode] = useState<"complete" | "help">("complete");
   const [streamingText, setStreamingText] = useState("");
@@ -137,6 +145,9 @@ export function HomeworkStudio({
             setCitations((e.citations as Citation[]) ?? []);
           } else if (e.type === "delta") {
             text += e.text;
+            setStreamingText(text);
+          } else if (e.type === "final") {
+            text = String(e.text);
             setStreamingText(text);
           } else if (e.type === "error") setError({ message: e.message, code: e.code });
         },
@@ -428,11 +439,21 @@ export function HomeworkStudio({
         <StageTitle n="04" title="Finished work" status={stageOf("generation")} />
         <p className="mt-2 text-[12.5px] text-ink-2">ORBIT writes the whole assignment from your analysis and sources, ready to hand in.</p>
         <div className="mt-4 rounded-2xl border border-line bg-surface p-4">
-          <Field label="Anything specific? (optional)">
-            <Input value={extra} onChange={(e) => setExtra(e.target.value)} placeholder="e.g. 800 words, in Dutch, formal tone, APA references" aria-label="Extra instructions" />
-          </Field>
+          <div className="grid gap-3 sm:grid-cols-[220px_1fr]">
+            <Field label="Level">
+              <Select value={level} onChange={(e) => setLevel(e.target.value)} aria-label="Level">
+                <option value="secondary">Secondary school</option>
+                <option value="vocational">MBO / vocational</option>
+                <option value="bachelor">University / HBO (bachelor)</option>
+                <option value="master">Master</option>
+              </Select>
+            </Field>
+            <Field label="Anything specific? (optional)">
+              <Input value={extra} onChange={(e) => setExtra(e.target.value)} placeholder="e.g. 800 words, in Dutch, APA references" aria-label="Extra instructions" />
+            </Field>
+          </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <Button disabled={!hasProvider || streaming} loading={writing && !streamingText} onClick={() => void generate("complete", extra)}>
+            <Button disabled={!hasProvider || streaming} loading={writing && !streamingText} onClick={() => void generate("complete", [`LEVEL: ${LEVELS[level]}`, extra.trim()].filter(Boolean).join("\n"))}>
               <Wand className="h-4 w-4" /> {output ? "Rewrite it" : "Do it for me"}
             </Button>
             {streaming ? (
