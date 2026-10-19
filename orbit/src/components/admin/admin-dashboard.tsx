@@ -28,7 +28,7 @@ export function AdminDashboard({ data, meEmail, backend }: { data: AdminOverview
 
   // last 30 days of signups as a bar strip
   const days = useMemo(() => {
-    const map = new Map(data.signups.map((s) => [String(s.day).slice(0, 10), Number(s.n)]));
+    const map = new Map<string, number>(data.signups.map((s) => [String(s.day).slice(0, 10), Number(s.n)] as [string, number]));
     return Array.from({ length: 30 }, (_, i) => {
       const d = new Date(Date.now() - (29 - i) * 864e5).toISOString().slice(0, 10);
       return { d, n: map.get(d) ?? 0 };

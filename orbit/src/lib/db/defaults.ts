@@ -186,6 +186,18 @@ export const DEFAULTS: Defaults = {
     assignment_id: null,
     done: false,
     origin: "student",
+    feed_id: null,
+    location: null,
+    external_uid: null,
+  }),
+  calendar_feeds: () => ({
+    workspace_id: "",
+    name: "Calendar",
+    url: "",
+    color: null,
+    last_synced_at: null,
+    last_error: null,
+    event_count: 0,
   }),
   graph_nodes: () => ({ workspace_id: "", entity_type: "concept", entity_id: "", label: null, x: 0, y: 0 }),
   graph_edges: () => ({

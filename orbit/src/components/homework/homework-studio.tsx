@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Check, Copy, Download, FileText, FileUp, MessageCircleQuestion, PenLine, Search, Sparkles, Square, Trash2, Wand } from "lucide-react";
+import { ArrowLeft, Check, Copy, Download, FileText, FileUp, Lightbulb, PenLine, Search, Sparkles, Square, Trash2, Wand } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
@@ -523,7 +523,7 @@ export function HomeworkStudio({
         {output && !writing ? (
           <div className="mt-6 rounded-2xl border border-line bg-surface">
             <div className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-3">
-              <MessageCircleQuestion className="h-4 w-4 text-ink-2" />
+              <Lightbulb className="h-4 w-4 text-ink-2" />
               <span className="text-[13.5px] font-medium">Need help understanding it?</span>
               <span className="text-[12px] text-ink-2">Ask for steps or an explanation, only when you want one.</span>
             </div>

@@ -39,7 +39,9 @@ function ago(iso: string | null): string {
   return `synced ${Math.round(m / 1440)} d ago`;
 }
 
-export function CalendarView({ events: initial, subjects, hasProvider, feeds: initialFeeds = [] }: { events: Ev[]; subjects: { id: string; name: string }[]; hasProvider: boolean; feeds?: FeedInfo[] }) {
+const NO_FEEDS: FeedInfo[] = [];
+
+export function CalendarView({ events: initial, subjects, hasProvider, feeds: initialFeeds = NO_FEEDS }: { events: Ev[]; subjects: { id: string; name: string }[]; hasProvider: boolean; feeds?: FeedInfo[] }) {
   const router = useRouter();
   const toast = useToast();
   const [events, setEvents] = useState(initial);
